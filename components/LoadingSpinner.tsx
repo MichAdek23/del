@@ -1,12 +1,5 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, View, Animated } from 'react-native';
 import { colors } from '@/constants';
 
 interface LoadingSpinnerProps {
@@ -14,22 +7,30 @@ interface LoadingSpinnerProps {
   color?: string;
 }
 
-export function LoadingSpinner({ size = 40, color = colors.primary }: LoadingSpinnerProps) {
-  const rotation = useSharedValue(0);
+export default function LoadingSpinner({ size = 40, color = colors.primary }: LoadingSpinnerProps) {
+  const rotation = useRef(new Animated.Value(0)).current;
+  const spin = rotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   useEffect(() => {
-    rotation.value = withRepeat(
-      withTiming(360, {
+    const animation = Animated.loop(
+      Animated.timing(rotation, {
+        toValue: 1,
         duration: 1000,
-        easing: Easing.linear,
-      }),
-      -1
+        useNativeDriver: true,
+      })
     );
-  }, [rotation]);
+    animation.start();
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
+    return () => {
+      animation.stop();
+      rotation.setValue(0);
+    };
+    // rotation is stable (ref), safe to leave deps empty
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -42,8 +43,8 @@ export function LoadingSpinner({ size = 40, color = colors.primary }: LoadingSpi
             borderWidth: 3,
             borderColor: color,
             borderTopColor: 'transparent',
+            transform: [{ rotate: spin }],
           },
-          animatedStyle,
         ]}
       />
     </View>
