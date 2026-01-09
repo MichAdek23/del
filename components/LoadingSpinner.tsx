@@ -9,6 +9,7 @@ interface LoadingSpinnerProps {
 
 export default function LoadingSpinner({ size = 40, color = colors.primary }: LoadingSpinnerProps) {
   const rotation = useRef(new Animated.Value(0)).current;
+
   const spin = rotation.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
