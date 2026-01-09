@@ -25,19 +25,19 @@ const OnboardingCarousel: React.FC = () => {
   const slides: CarouselSlide[] = [
     {
       id: 1,
-      backgroundImage: require('/images/onboarding/slide-1.jpg'), // You'll need to update these paths
+      backgroundImage: require('../assets/onboarding1.png'), // You'll need to update these paths
       title: 'Welcome to Our Platform',
       description: 'Discover amazing features designed to enhance your experience',
     },
     {
       id: 2,
-      backgroundImage: require('/images/onboarding/slide-2.jpg'),
+      backgroundImage: require('../assets/onboarding2.png'),
       title: 'Seamless Integration',
       description: 'Connect effortlessly with all your favorite tools and services',
     },
     {
       id: 3,
-      backgroundImage: require('/images/onboarding/slide-3.jpg'),
+      backgroundImage: require('../assets/onboarding3.png'),
       title: 'Real-time Collaboration',
       description: 'Work together in real-time with your team members anywhere',
     },
