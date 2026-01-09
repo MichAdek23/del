@@ -1,28 +1,25 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, View, Image, Animated, Easing } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
 import { router } from 'expo-router';
 
 export default function Splash() {
-  const logoScale = useSharedValue(0.8);
-  const logoOpacity = useSharedValue(0);
+  const logoScale = useRef(new Animated.Value(0.8)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    logoOpacity.value = withTiming(1, {
-      duration: 800,
-      easing: Easing.out(Easing.ease),
-    });
-
-    logoScale.value = withTiming(1, {
-      duration: 800,
-      easing: Easing.out(Easing.ease),
-    });
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoScale, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     const timer = setTimeout(() => {
       router.replace('/onboarding');
@@ -31,10 +28,10 @@ export default function Splash() {
     return () => clearTimeout(timer);
   }, [logoOpacity, logoScale]);
 
-  const animatedLogoStyle = useAnimatedStyle(() => ({
-    opacity: logoOpacity.value,
-    transform: [{ scale: logoScale.value }],
-  }));
+  const animatedLogoStyle = {
+    opacity: logoOpacity,
+    transform: [{ scale: logoScale }],
+  };
 
   return (
     <View style={styles.container}>
