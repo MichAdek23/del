@@ -43,13 +43,13 @@ const OnboardingCarousel: React.FC = () => {
     },
     {
       id: 4,
-      backgroundImage: require('/images/onboarding/slide-4.jpg'),
+      backgroundImage: require('../assets/onboarding2.png'),
       title: 'Advanced Analytics',
       description: 'Gain insights with powerful analytics and detailed reports',
     },
     {
       id: 5,
-      backgroundImage: require('/images/onboarding/slide-5.jpg'),
+      backgroundImage: require('../assets/onboarding3.png'),
       title: 'Get Started Now',
       description: 'Begin your journey with us today',
     },
