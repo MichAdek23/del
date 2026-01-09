@@ -28,7 +28,8 @@ export function LoadingSpinner({ size = 40, color = colors.primary }: LoadingSpi
       animation.stop();
       rotation.setValue(0);
     };
-  }, [rotation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={styles.container}>
