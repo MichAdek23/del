@@ -1,3 +1,11 @@
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Text, ScrollView, Image, NativeScrollEvent } from 'react-native';
+import { Button } from '@/components';
+import { colors } from '@/constants';
+import { router } from 'expo-router';
+import { Briefcase, User, Bike, Zap } from 'lucide-react-native';
+
+
 // Replace the ONBOARDING_SCREENS with image sources: 
 const ONBOARDING_SCREENS = [
   {
