@@ -1,43 +1,107 @@
-'use client';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, View, Image, Animated, Easing } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
+import { router } from 'expo-router';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
-export default function SplashScreen() {
-  const router = useRouter();
+export default function Splash() {
+  const logoScale = useRef(new Animated.Value(0.8)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Set a delay before redirecting to onboarding
-    const delay = setTimeout(() => {
-      router.push('/onboarding');
-    }, 3000); // 3 second delay
+    Animated.parallel([
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoScale, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
-    return () => clearTimeout(delay);
-  }, [router]);
+    const timer = setTimeout(() => {
+      router.replace('/onboarding');
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [logoOpacity, logoScale]);
+
+  const animatedLogoStyle = {
+    opacity: logoOpacity,
+    transform: [{ scale: logoScale }],
+  };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-600 to-blue-800">
-      <div className="text-center">
-        {/* Logo/Brand */}
-        <div className="mb-8">
-          <div className="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center shadow-lg">
-            <div className="text-4xl font-bold text-blue-600">D</div>
-          </div>
-        </div>
+    <View style={styles.container}>
+      <View style={styles.mapBackground}>
+        <Svg width="100%" height="100%" viewBox="0 0 400 800">
+          {[...Array(50)].map((_, i) => (
+            <Circle
+              key={i}
+              cx={Math.random() * 400}
+              cy={Math.random() * 800}
+              r={Math.random() * 3 + 1}
+              fill="rgba(255, 255, 255, 0.08)"
+            />
+          ))}
+          {[...Array(40)].map((_, i) => (
+            <Circle
+              key={`line-${i}`}
+              cx={Math.random() * 400}
+              cy={Math.random() * 800}
+              r={Math.random() * 1.5}
+              fill="rgba(255, 255, 255, 0.05)"
+            />
+          ))}
+        </Svg>
+      </View>
 
-        {/* Title */}
-        <h1 className="text-4xl font-bold text-white mb-4">Del</h1>
+      <View style={styles.brandContainer}>
+        <Animated.View style={animatedLogoStyle}>
+          <Image
+            source={require('@/assets/images/m.png')}
+            style={styles.brandText}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      </View>
 
-        {/* Subtitle */}
-        <p className="text-blue-100 text-lg mb-12">Welcome</p>
-
-        {/* Loading Spinner */}
-        <div className="flex justify-center items-center gap-2">
-          <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-          <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-          <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-        </div>
-      </div>
-    </div>
+      <View style={styles.logoContainer}>
+        <Animated.View style={animatedLogoStyle}>
+          <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
+        </Animated.View>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#1a3a52',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapBackground: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.3,
+  },
+  logoContainer: {
+    marginTop: 20,
+    zIndex: 1,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+  },
+  brandContainer: {
+    marginBottom: 10,
+    zIndex: 1,
+  },
+  brandText: {
+    width: 150,
+    height: 50,
+  },
+});
