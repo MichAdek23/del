@@ -44,6 +44,7 @@ export default function ConsumerLayout() {
         ),
       }}
     >
+      {/* Home Screen - Your index.tsx content */}
       <Tabs.Screen
         name="index"
         options={{
@@ -61,37 +62,18 @@ export default function ConsumerLayout() {
         }}
       />
 
+      {/* Since we're using sheet modals, hide these tabs from navigation */}
       <Tabs.Screen
         name="new-delivery"
         options={{
-          title: 'New',
-          tabBarLabel: 'New',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIcon]}>
-              <MaterialCommunityIcons 
-                name="plus-circle" 
-                color={focused ? '#007AFF' : color} 
-                size={focused ? 26 : size} 
-              />
-            </View>
-          ),
+          href: null, // This hides the tab from navigation
         }}
       />
 
       <Tabs.Screen
         name="active"
         options={{
-          title: 'Active',
-          tabBarLabel: 'Active',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIcon]}>
-              <MaterialCommunityIcons 
-                name="truck-fast" 
-                color={focused ? '#007AFF' : color} 
-                size={focused ? 26 : size} 
-              />
-            </View>
-          ),
+          href: null, // This hides the tab from navigation
         }}
       />
 
@@ -115,17 +97,7 @@ export default function ConsumerLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconContainer, focused && styles.activeIcon]}>
-              <MaterialCommunityIcons 
-                name="account" 
-                color={focused ? '#007AFF' : color} 
-                size={focused ? 26 : size} 
-              />
-            </View>
-          ),
+          href: null, // This hides the tab from navigation
         }}
       />
     </Tabs>
@@ -147,10 +119,5 @@ const styles = StyleSheet.create({
   },
   activeIcon: {
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
