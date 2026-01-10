@@ -10,9 +10,9 @@ import {
   StatusBar,
   Animated,
   SafeAreaView,
-  Modal,
   PanResponder
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Card, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
@@ -40,21 +40,19 @@ import {
 } from 'lucide-react-native';
 import { mockConsumer, mockDeliveries } from '@/constants/mockData';
 
-
 const { width, height } = Dimensions.get('window');
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
-const SHEET_HEIGHT = height * 0.7; // 70% sheet modal
+const SHEET_HEIGHT = height * 0.7;
 
 export default function ConsumerHome() {
   const [user] = useState(mockConsumer);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [activeSheet, setActiveSheet] = useState(null); // null, 'newDelivery', 'tracking', 'profile', etc.
-  const [sheetAnimation] = useState(new Animated.Value(height)); // Start off-screen
+  const [activeSheet, setActiveSheet] = useState(null);
+  const [sheetAnimation] = useState(new Animated.Value(height));
   const [panY] = useState(new Animated.Value(0));
   const fadeAnim = useState(new Animated.Value(1))[0];
   const activeDeliveries = mockDeliveries.filter((d) => d.status !== 'delivered');
 
-  // Pan responder for swipe down to close
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -103,20 +101,6 @@ export default function ConsumerHome() {
     }).start(() => setShowWelcome(false));
   };
 
-  const region = {
-    latitude: 37.78825,
-    longitude: -122.4324,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  };
-
-  const markers = [
-    { id: 1, latitude: 37.78825, longitude: -122.4324, title: 'Current Location' },
-    { id: 2, latitude: 37.76825, longitude: -122.4224, title: 'Package Pickup' },
-    { id: 3, latitude: 37.77825, longitude: -122.4424, title: 'Delivery Destination' },
-  ];
-
-  // Render the active sheet content
   const renderSheetContent = () => {
     switch (activeSheet) {
       case 'newDelivery':
@@ -140,37 +124,18 @@ export default function ConsumerHome() {
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
       
-      {/* Live Map Background */}
+      {/* Placeholder Map Background */}
       <View style={styles.mapContainer}>
-        <MapView
-          provider={PROVIDER_GOOGLE}
+        <LinearGradient
+          colors={['#1a1a2e', '#0f3460', '#16213e']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.map}
-          region={region}
-          showsUserLocation={true}
-          showsMyLocationButton={false}
-          showsTraffic={true}
-          showsBuildings={true}
-          zoomEnabled={false}
-          scrollEnabled={false}
-          pitchEnabled={false}
-          rotateEnabled={false}
-        >
-          {markers.map(marker => (
-            <Marker
-              key={marker.id}
-              coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
-              title={marker.title}
-              pinColor="#007AFF"
-            />
-          ))}
-        </MapView>
-        
-        {/* Dark Overlay for readability */}
+        />
         <View style={styles.mapOverlay} />
       </View>
 
       <SafeAreaView style={styles.safeArea}>
-        {/* Welcome Notification */}
         {showWelcome && (
           <Animated.View style={[styles.welcomeCard, { opacity: fadeAnim }]}>
             <View style={styles.welcomeContent}>
@@ -188,7 +153,6 @@ export default function ConsumerHome() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Quick Actions */}
           <View style={styles.quickActions}>
             <TouchableOpacity 
               style={styles.newDeliveryButton}
@@ -246,7 +210,6 @@ export default function ConsumerHome() {
             </View>
           </View>
 
-          {/* Active Deliveries Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Active Deliveries</Text>
@@ -275,7 +238,6 @@ export default function ConsumerHome() {
             )}
           </View>
 
-          {/* Saved Addresses Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Saved Addresses</Text>
             <Card variant="light">
@@ -296,12 +258,10 @@ export default function ConsumerHome() {
             </Card>
           </View>
 
-          {/* Extra space for bottom navigation */}
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
 
-      {/* Sheet Modal Overlay */}
       {activeSheet && (
         <View style={styles.overlay}>
           <TouchableOpacity 
@@ -312,7 +272,6 @@ export default function ConsumerHome() {
         </View>
       )}
 
-      {/* Sheet Modal */}
       <Animated.View 
         style={[
           styles.sheetContainer,
@@ -324,12 +283,10 @@ export default function ConsumerHome() {
         ]}
         {...panResponder.panHandlers}
       >
-        {/* Sheet Handle */}
         <View style={styles.sheetHandle}>
           <View style={styles.handleBar} />
         </View>
         
-        {/* Sheet Content */}
         <View style={styles.sheetContent}>
           {renderSheetContent()}
         </View>
@@ -414,7 +371,6 @@ function NewDeliverySheet({ closeSheet }: any) {
           <Button
             title="Create Delivery"
             onPress={() => {
-              // Handle delivery creation
               closeSheet();
             }}
             variant="primary"
@@ -454,7 +410,6 @@ function TrackingSheet({ closeSheet }: any) {
           style={sheetStyles.trackButton}
         />
         
-        {/* Tracking Status Example */}
         <View style={sheetStyles.trackingStatus}>
           <View style={sheetStyles.statusStep}>
             <View style={[sheetStyles.statusDot, sheetStyles.activeDot]} />
@@ -668,7 +623,6 @@ function DeliveryDetailsSheet({ closeSheet }: any) {
           onPress={() => {}}
           variant="primary"
           style={sheetStyles.trackButton}
-          icon={<Navigation size={20} color="#fff" />}
         />
       </ScrollView>
     </View>
