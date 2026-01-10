@@ -1,18 +1,39 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
-import { Button, Input, Header } from '@/components';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  ScrollView, 
+  ImageBackground,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  Dimensions,
+  SafeAreaView 
+} from 'react-native';
+import { Input, Button } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+const { width, height } = Dimensions.get('window');
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = () => {
     const newErrors: any = {};
 
-    if (!email) newErrors.email = 'Email is required';
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    
     if (!password) newErrors.password = 'Password is required';
 
     if (Object.keys(newErrors).length > 0) {
@@ -20,99 +41,275 @@ export default function Login() {
       return;
     }
 
-    router.replace('/(consumer)');
+    setIsLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false);
+      router.replace('/(consumer)');
+    }, 1500);
   };
 
   return (
-    <View style={styles.container}>
-      <Header title="Sign In" onBack={() => router.back()} />
-      <ScrollView style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to continue with DELIVA</Text>
-        </View>
+    <SafeAreaView style={styles.safeArea}>
+      <ImageBackground
+        source={require('@/assets/onboarding1.png')}
+        style={styles.background}
+        resizeMode="cover"
+      >
+        {/* Dark Overlay - Extends into safe area */}
+        <View style={styles.overlay} />
+        
+        <StatusBar translucent backgroundColor="transparent" />
 
-        <Input
-          label="Email Address"
-          placeholder="you@example.com"
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            if (errors.email) setErrors({ ...errors, email: '' });
-          }}
-          keyboardType="email-address"
-          error={errors.email}
-        />
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          {/* Header with back button - Inside safe area */}
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Welcome Back</Text>
+          </View>
 
-        <Input
-          label="Password"
-          placeholder="••••••••"
-          value={password}
-          onChangeText={(text) => {
-            setPassword(text);
-            if (errors.password) setErrors({ ...errors, password: '' });
-          }}
-          secureTextEntry
-          error={errors.password}
-        />
-
-        <Button
-          title="Sign In"
-          onPress={handleLogin}
-          size="large"
-          style={styles.button}
-        />
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
-          <Text
-            style={styles.link}
-            onPress={() => router.push('/auth/role-selection')}
+          <ScrollView 
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
           >
-            Sign up
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
+            {/* Welcome Section */}
+            <View style={styles.welcomeSection}>
+              <Text style={styles.welcomeTitle}>Sign In</Text>
+              <Text style={styles.welcomeSubtitle}>
+                Sign in to continue your journey with us
+              </Text>
+            </View>
+
+            {/* Form Container */}
+            <View style={styles.formContainer}>
+              <Input
+                label="Email Address"
+                placeholder="you@example.com"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (errors.email) setErrors({ ...errors, email: '' });
+                }}
+                keyboardType="email-address"
+                error={errors.email}
+                variant="light"
+                autoCapitalize="none"
+              />
+
+              <Input
+                label="Password"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (errors.password) setErrors({ ...errors, password: '' });
+                }}
+                secureTextEntry
+                error={errors.password}
+                variant="light"
+              />
+
+              {/* Forgot Password Link */}
+              <TouchableOpacity 
+                style={styles.forgotPasswordContainer}
+                onPress={() => router.push('/auth/forgot-password')}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              {/* Sign In Button */}
+              <Button
+                title={isLoading ? "Signing In..." : "Sign In"}
+                onPress={handleLogin}
+                size="large"
+                style={styles.signinButton}
+                loading={isLoading}
+                disabled={isLoading}
+                variant="primary"
+              />
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or continue with</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Social Login Options */}
+              <View style={styles.socialButtonsContainer}>
+                <TouchableOpacity style={styles.socialButton}>
+                  <Ionicons name="logo-google" size={20} color="#DB4437" />
+                  <Text style={styles.socialButtonText}>Google</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.socialButton}>
+                  <Ionicons name="logo-apple" size={20} color="#000" />
+                  <Text style={styles.socialButtonText}>Apple</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Sign Up Link */}
+              <View style={styles.signupContainer}>
+                <Text style={styles.signupText}>Don't have an account? </Text>
+                <TouchableOpacity onPress={() => router.push('/auth/consumer-signup')}>
+                  <Text style={styles.signupLink}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    // Extend into safe area on iOS
+    top: Platform.OS === 'ios' ? -50 : 0,
+    height: Platform.OS === 'ios' ? height + 50 : height,
+  },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: 20,
   },
   header: {
-    marginBottom: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 10 : 20,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
   },
-  title: {
-    fontSize: 28,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 40,
+  },
+  welcomeSection: {
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  welcomeTitle: {
+    fontSize: 32,
     fontWeight: '700',
-    color: colors.text,
+    color: '#fff',
     marginBottom: 8,
   },
-  subtitle: {
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 24,
+  },
+  formContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 20,
+    // Add shadow for depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  forgotPasswordContainer: {
+    alignSelf: 'flex-end',
+    marginTop: -8,
+    marginBottom: 24,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  signinButton: {
+    marginBottom: 24,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  socialButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  socialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  signupContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signupText: {
     fontSize: 16,
     color: colors.textSecondary,
   },
-  button: {
-    marginTop: 24,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  footerText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  link: {
-    fontSize: 14,
-    color: colors.primary,
+  signupLink: {
+    fontSize: 16,
+    color: '#007AFF',
     fontWeight: '600',
   },
 });
