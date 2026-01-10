@@ -9,6 +9,7 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
+import { router } from 'expo-router'; // Import router
 
 const { width, height } = Dimensions.get('window');
 
@@ -73,10 +74,8 @@ const OnboardingCarousel: React.FC = () => {
   };
 
   const handleSkip = () => {
-    // Navigate to your main app screen
-    console.log('Skip/Get Started pressed');
-    // You would typically navigate to your main app screen here
-    // For example: router.replace('/(tabs)');
+    // Navigate to consumer signup screen
+    router.push('/auth/consumer-signup');
   };
 
   const isLastSlide = currentSlide === slides.length - 1;
@@ -184,15 +183,15 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    justifyContent: 'flex-end', // Changed from 'center' to 'flex-end'
+    justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 120, // Added padding to push content up from the very bottom
+    paddingBottom: 120,
     paddingTop: Platform.OS === 'ios' ? 44 : 0,
   },
   textContainer: {
     maxWidth: width * 0.8,
-    marginBottom: 40, // Added margin to create space above dots
+    marginBottom: 40,
   },
   title: {
     fontSize: 40,
