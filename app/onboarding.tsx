@@ -9,9 +9,13 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
-import { router } from 'expo-router'; // Import router
+import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
+
+// Get status bar height for different platforms
+const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
+const BOTTOM_SAFE_AREA = Platform.OS === 'ios' ? 34 : 0;
 
 interface CarouselSlide {
   id: number;
@@ -85,66 +89,68 @@ const OnboardingCarousel: React.FC = () => {
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
       
-      {/* Carousel Slide - Full screen */}
-      <ImageBackground
-        source={currentSlideData.backgroundImage}
-        style={styles.imageBackground}
-        resizeMode="cover"
-      >
-        {/* Dark Overlay - Full screen */}
+      {/* Background container that extends beyond safe area */}
+      <View style={styles.backgroundContainer}>
+        <ImageBackground
+          source={currentSlideData.backgroundImage}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
+        
+        {/* Dark Overlay - Full screen including all safe areas */}
         <View style={styles.overlay} />
+      </View>
 
-        {/* Skip/Get Started Button - Top Right */}
-        <TouchableOpacity
-          onPress={handleSkip}
-          style={styles.skipButton}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.skipButtonText}>
-            {isLastSlide ? 'Get Started' : 'Skip'}
+      {/* Skip/Get Started Button - Top Right */}
+      <TouchableOpacity
+        onPress={handleSkip}
+        style={styles.skipButton}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.skipButtonText}>
+          {isLastSlide ? 'Get Started' : 'Skip'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Content Container - Moved closer to bottom */}
+      <View style={styles.contentContainer}>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>
+            {currentSlideData.title}
           </Text>
-        </TouchableOpacity>
-
-        {/* Content Container - Moved closer to bottom */}
-        <View style={styles.contentContainer}>
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>
-              {currentSlideData.title}
-            </Text>
-            <Text style={styles.description}>
-              {currentSlideData.description}
-            </Text>
-          </View>
-        </View>
-
-        {/* Dot Indicators */}
-        <View style={styles.dotsContainer}>
-          {slides.map((_, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => goToSlide(index)}
-              style={[
-                styles.dot,
-                index === currentSlide && styles.activeDot,
-              ]}
-              activeOpacity={0.7}
-              accessibilityLabel={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </View>
-
-        {/* Play/Pause Button */}
-        <TouchableOpacity
-          onPress={() => setIsAutoPlay(!isAutoPlay)}
-          style={styles.playPauseButton}
-          activeOpacity={0.7}
-          accessibilityLabel={isAutoPlay ? 'Pause carousel' : 'Play carousel'}
-        >
-          <Text style={styles.playPauseButtonText}>
-            {isAutoPlay ? '❚❚' : '▶'}
+          <Text style={styles.description}>
+            {currentSlideData.description}
           </Text>
-        </TouchableOpacity>
-      </ImageBackground>
+        </View>
+      </View>
+
+      {/* Dot Indicators */}
+      <View style={styles.dotsContainer}>
+        {slides.map((_, index) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => goToSlide(index)}
+            style={[
+              styles.dot,
+              index === currentSlide && styles.activeDot,
+            ]}
+            activeOpacity={0.7}
+            accessibilityLabel={`Go to slide ${index + 1}`}
+          />
+        ))}
+      </View>
+
+      {/* Play/Pause Button */}
+      <TouchableOpacity
+        onPress={() => setIsAutoPlay(!isAutoPlay)}
+        style={styles.playPauseButton}
+        activeOpacity={0.7}
+        accessibilityLabel={isAutoPlay ? 'Pause carousel' : 'Play carousel'}
+      >
+        <Text style={styles.playPauseButtonText}>
+          {isAutoPlay ? '❚❚' : '▶'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -154,10 +160,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  imageBackground: {
-    width: width,
-    height: height,
-    flex: 1,
+  // Background container that extends beyond safe area
+  backgroundContainer: {
+    position: 'absolute',
+    top: -STATUSBAR_HEIGHT,
+    bottom: -BOTTOM_SAFE_AREA,
+    left: 0,
+    right: 0,
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -165,7 +178,7 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 30,
+    top: Platform.OS === 'ios' ? STATUSBAR_HEIGHT + 20 : 50,
     right: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 20,
@@ -186,8 +199,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 120,
-    paddingTop: Platform.OS === 'ios' ? 44 : 0,
+    paddingBottom: 120 + BOTTOM_SAFE_AREA, // Account for bottom safe area
+    paddingTop: Platform.OS === 'ios' ? STATUSBAR_HEIGHT + 20 : 40,
   },
   textContainer: {
     maxWidth: width * 0.8,
@@ -214,7 +227,7 @@ const styles = StyleSheet.create({
   },
   dotsContainer: {
     position: 'absolute',
-    bottom: 60,
+    bottom: 60 + BOTTOM_SAFE_AREA, // Account for bottom safe area
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -235,7 +248,7 @@ const styles = StyleSheet.create({
   },
   playPauseButton: {
     position: 'absolute',
-    bottom: 50,
+    bottom: 50 + BOTTOM_SAFE_AREA, // Account for bottom safe area
     right: 30,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     width: 40,
