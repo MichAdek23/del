@@ -9,7 +9,6 @@ import {
   Platform,
   StatusBar,
   Animated,
-  SafeAreaView,
   PanResponder
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,14 +17,10 @@ import { colors } from '@/constants';
 import { router } from 'expo-router';
 import { 
   Plus, 
-  Zap, 
   MapPin, 
   Package, 
   Clock, 
-  User, 
-  Home, 
-  TruckFast, 
-  History, 
+  User,
   X, 
   Calendar,
   CreditCard,
@@ -33,7 +28,6 @@ import {
   Settings,
   ArrowRight,
   Star,
-  CheckCircle,
   Phone,
   Mail,
   Navigation
@@ -42,7 +36,8 @@ import { mockConsumer, mockDeliveries } from '@/constants/mockData';
 
 const { width, height } = Dimensions.get('window');
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
-const SHEET_HEIGHT = height * 0.7;
+const SHEET_HEIGHT = Platform.OS === 'ios' ? height * 0.7 : height * 0.75;
+const QUICK_ACTIONS_HEIGHT = height * 0.35;
 
 export default function ConsumerHome() {
   const [user] = useState(mockConsumer);
@@ -50,6 +45,7 @@ export default function ConsumerHome() {
   const [activeSheet, setActiveSheet] = useState(null);
   const [sheetAnimation] = useState(new Animated.Value(height));
   const [panY] = useState(new Animated.Value(0));
+  const [quickActionsAnimation] = useState(new Animated.Value(QUICK_ACTIONS_HEIGHT * 0.3));
   const fadeAnim = useState(new Animated.Value(1))[0];
   const activeDeliveries = mockDeliveries.filter((d) => d.status !== 'delivered');
 
@@ -85,13 +81,25 @@ export default function ConsumerHome() {
 
   const closeSheet = () => {
     Animated.spring(sheetAnimation, {
-      toValue: height,
+      toValue: height + 100,
       useNativeDriver: true,
     }).start(() => {
       setActiveSheet(null);
       panY.setValue(0);
     });
   };
+
+  const toggleQuickActions = () => {
+    Animated.spring(quickActionsAnimation, {
+      toValue: quickActionsAnimation._value === QUICK_ACTIONS_HEIGHT * 0.3 ? QUICK_ACTIONS_HEIGHT : QUICK_ACTIONS_HEIGHT * 0.3,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  React.useEffect(() => {
+    const handler = (sheetName: string) => openSheet(sheetName);
+    (global as any).openModalSheet = handler;
+  }, []);
 
   const handleCloseWelcome = () => {
     Animated.timing(fadeAnim, {
@@ -124,7 +132,6 @@ export default function ConsumerHome() {
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
       
-      {/* Placeholder Map Background */}
       <View style={styles.mapContainer}>
         <LinearGradient
           colors={['#1a1a2e', '#0f3460', '#16213e']}
@@ -135,12 +142,16 @@ export default function ConsumerHome() {
         <View style={styles.mapOverlay} />
       </View>
 
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[
+        styles.safeArea,
+        Platform.OS === 'android' && styles.safeAreaAndroid,
+        Platform.OS === 'ios' && styles.safeAreaIos,
+      ]}>
         {showWelcome && (
           <Animated.View style={[styles.welcomeCard, { opacity: fadeAnim }]}>
             <View style={styles.welcomeContent}>
               <Text style={styles.welcomeTitle}>Hello, {user.firstName}!</Text>
-              <Text style={styles.welcomeSubtitle}>Ready to send or receive?</Text>
+              <Text style={styles.welcomeSubtitle}>What would you like to do?</Text>
             </View>
             <TouchableOpacity onPress={handleCloseWelcome} style={styles.closeButton}>
               <X size={20} color="#666" />
@@ -152,6 +163,63 @@ export default function ConsumerHome() {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+        >
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </View>
+
+      {activeSheet && (
+        <View style={styles.overlay}>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFillObject}
+            onPress={closeSheet}
+            activeOpacity={1}
+          />
+        </View>
+      )}
+
+      <Animated.View 
+        style={[
+          styles.sheetContainer,
+          {
+            transform: [
+              { translateY: Animated.add(sheetAnimation, panY) },
+            ],
+          },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.sheetHandle}>
+          <View style={styles.handleBar} />
+        </View>
+        
+        <View style={styles.sheetContent}>
+          {renderSheetContent()}
+        </View>
+      </Animated.View>
+
+      <Animated.View 
+        style={[
+          styles.quickActionsSheet,
+          {
+            height: quickActionsAnimation,
+          },
+        ]}
+      >
+        <TouchableOpacity 
+          style={styles.quickActionsToggle}
+          onPress={toggleQuickActions}
+          activeOpacity={1}
+        >
+          <View style={styles.toggleHandle}>
+            <View style={styles.toggleBar} />
+          </View>
+          <Text style={styles.toggleText}>Quick Actions</Text>
+        </TouchableOpacity>
+
+        <ScrollView 
+          style={styles.quickActionsContent}
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.quickActions}>
             <TouchableOpacity 
@@ -209,87 +277,7 @@ export default function ConsumerHome() {
               </TouchableOpacity>
             </View>
           </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Active Deliveries</Text>
-              {activeDeliveries.length > 0 && (
-                <View style={styles.countBadge}>
-                  <Text style={styles.countText}>{activeDeliveries.length}</Text>
-                </View>
-              )}
-            </View>
-            {activeDeliveries.length > 0 ? (
-              activeDeliveries.map((delivery) => (
-                <DeliveryCard
-                  key={delivery.id}
-                  delivery={delivery}
-                  onPress={() => openSheet('deliveryDetails')}
-                />
-              ))
-            ) : (
-              <Card variant="light">
-                <View style={styles.emptyCard}>
-                  <Package size={40} color="#666" />
-                  <Text style={styles.emptyText}>No active deliveries</Text>
-                  <Text style={styles.emptySubtext}>Create your first delivery to get started</Text>
-                </View>
-              </Card>
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Saved Addresses</Text>
-            <Card variant="light">
-              {user.savedAddresses.map((addr) => (
-                <TouchableOpacity key={addr.id} style={styles.addressItem}>
-                  <View style={styles.addressIcon}>
-                    <MapPin size={16} color="#007AFF" />
-                  </View>
-                  <View style={styles.addressInfo}>
-                    <Text style={styles.addressLabel}>{addr.label}</Text>
-                    <Text style={styles.addressText}>{addr.street}</Text>
-                    <Text style={styles.addressText}>
-                      {addr.city}, {addr.state} {addr.zipCode}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </Card>
-          </View>
-
-          <View style={{ height: 100 }} />
         </ScrollView>
-      </SafeAreaView>
-
-      {activeSheet && (
-        <View style={styles.overlay}>
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFillObject}
-            onPress={closeSheet}
-            activeOpacity={1}
-          />
-        </View>
-      )}
-
-      <Animated.View 
-        style={[
-          styles.sheetContainer,
-          {
-            transform: [
-              { translateY: Animated.add(sheetAnimation, panY) },
-            ],
-          },
-        ]}
-        {...panResponder.panHandlers}
-      >
-        <View style={styles.sheetHandle}>
-          <View style={styles.handleBar} />
-        </View>
-        
-        <View style={styles.sheetContent}>
-          {renderSheetContent()}
-        </View>
       </Animated.View>
     </View>
   );
@@ -629,28 +617,6 @@ function DeliveryDetailsSheet({ closeSheet }: any) {
   );
 }
 
-function DeliveryCard({ delivery, onPress }: any) {
-  return (
-    <Card variant="light" onPress={onPress} style={styles.deliveryCard}>
-      <View style={styles.deliveryContent}>
-        <View style={styles.deliveryIcon}>
-          <Package size={24} color="#007AFF" />
-        </View>
-        <View style={styles.deliveryInfo}>
-          <Text style={styles.deliveryTitle}>{delivery.packageDescription}</Text>
-          <View style={styles.deliveryMeta}>
-            <Text style={styles.deliveryStatus}>{delivery.status.toUpperCase()}</Text>
-            <Text style={styles.deliveryCost}>${delivery.estimatedCost.toFixed(2)}</Text>
-          </View>
-        </View>
-        <View style={styles.deliveryArrow}>
-          <Zap size={20} color="#007AFF" />
-        </View>
-      </View>
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -672,6 +638,14 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  safeAreaIos: {
+    paddingTop: 10,
+  },
+  safeAreaAndroid: {
+    paddingTop: StatusBar.currentHeight || 0,
+    paddingBottom: 10,
+    paddingHorizontal: 0,
   },
   welcomeCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -710,11 +684,52 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
+    paddingHorizontal: 0,
+  },
+  quickActionsSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  quickActionsToggle: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  toggleHandle: {
+    marginBottom: 8,
+  },
+  toggleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#ddd',
+    borderRadius: 2,
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  quickActionsContent: {
+    flex: 1,
   },
   quickActions: {
     paddingHorizontal: 20,
     paddingTop: 10,
+    paddingBottom: 20,
   },
   newDeliveryButton: {
     backgroundColor: '#007AFF',
@@ -753,7 +768,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -766,128 +781,7 @@ const styles = StyleSheet.create({
   quickActionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
-  },
-  section: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  countBadge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  deliveryCard: {
-    marginBottom: 12,
-  },
-  deliveryContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  deliveryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  deliveryInfo: {
-    flex: 1,
-  },
-  deliveryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
     color: '#000',
-    marginBottom: 4,
-  },
-  deliveryMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  deliveryStatus: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#007AFF',
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  deliveryCost: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#000',
-  },
-  deliveryArrow: {
-    paddingLeft: 12,
-  },
-  emptyCard: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  addressItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  addressIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  addressInfo: {
-    flex: 1,
-  },
-  addressLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 2,
-  },
-  addressText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 1,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
