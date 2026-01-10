@@ -11,33 +11,22 @@ export default function ConsumerLayout() {
       screenOptions={{
         tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: '#999',
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginBottom: 6,
-        },
+        tabBarLabel: () => null,
         tabBarStyle: {
-  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  borderTopWidth: 0,
-  elevation: 5,
-  height: 70,
-  borderRadius: 35,
-  marginHorizontal: 20,
-  marginBottom: Platform.OS === 'ios' ? 25 : 20,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.15,
-  shadowRadius: 12,
-  paddingVertical: 8,
-  // Remove position: 'absolute' and use margin instead
-},
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 0,
+          height: 55,
+          borderRadius: 28,
+          marginHorizontal: 40,
+          marginBottom: Platform.OS === 'ios' ? 20 : 15,
+          shadowColor: 'transparent',
+          paddingVertical: 0,
+          paddingTop: 12,
+        },
         headerShown: false,
         tabBarBackground: () => (
-          <BlurView 
-            intensity={80} 
-            tint="light"
-            style={StyleSheet.absoluteFillObject}
-          >
+          <BlurView intensity={90} tint="light" style={StyleSheet.absoluteFillObject}>
             <View style={styles.navBackground} />
           </BlurView>
         ),
@@ -48,57 +37,33 @@ export default function ConsumerLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarLabel: 'Home',
           tabBarIcon: ({ color, size, focused }) => (
             <View style={[styles.iconContainer, focused && styles.activeIcon]}>
-              <MaterialCommunityIcons 
-                name="home" 
-                color={focused ? '#007AFF' : color} 
-                size={focused ? 26 : size} 
+              <MaterialCommunityIcons
+                name="home"
+                color={focused ? '#007AFF' : color}
+                size={focused ? 22 : size}
               />
             </View>
           ),
         }}
       />
-
-      {/* Since we're using sheet modals, hide these tabs from navigation */}
-      <Tabs.Screen
-        name="new-delivery"
-        options={{
-          href: null, // This hides the tab from navigation
-        }}
-      />
-
-      <Tabs.Screen
-        name="active"
-        options={{
-          href: null, // This hides the tab from navigation
-        }}
-      />
-
       <Tabs.Screen
         name="history"
         options={{
           title: 'History',
-          tabBarLabel: 'History',
           tabBarIcon: ({ color, size, focused }) => (
             <View style={[styles.iconContainer, focused && styles.activeIcon]}>
-              <MaterialCommunityIcons 
-                name="history" 
-                color={focused ? '#007AFF' : color} 
-                size={focused ? 26 : size} 
+              <MaterialCommunityIcons
+                name="history"
+                color={focused ? '#007AFF' : color}
+                size={focused ? 22 : size}
               />
             </View>
           ),
         }}
       />
 
-      <Tabs.Screen
-        name="profile"
-        options={{
-          href: null, // This hides the tab from navigation
-        }}
-      />
     </Tabs>
   );
 }
@@ -106,17 +71,19 @@ export default function ConsumerLayout() {
 const styles = StyleSheet.create({
   navBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 18,
   },
   activeIcon: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: 'rgba(0, 122, 255, 0.15)',
   },
 });
