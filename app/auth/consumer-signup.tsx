@@ -19,6 +19,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
+// Get status bar height for different platforms
+const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
+
 export default function ConsumerSignup() {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -86,6 +89,7 @@ export default function ConsumerSignup() {
           style={styles.keyboardAvoid}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
+          {/* SafeAreaView only for content, not background */}
           <SafeAreaView style={styles.safeAreaContent}>
             {/* Header with back button */}
             <View style={styles.header}>
@@ -225,13 +229,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   background: {
-    flex: 1,
-    width: width,
-    height: height,
+    width: '100%',
+    height: '100%',
+    // Extend beyond safe area on all sides
+    marginTop: Platform.OS === 'ios' ? -STATUSBAR_HEIGHT : 0,
+    marginBottom: Platform.OS === 'ios' ? -34 : 0, // For bottom home indicator
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    // Extend into safe areas
+    top: Platform.OS === 'ios' ? -STATUSBAR_HEIGHT : 0,
+    bottom: Platform.OS === 'ios' ? -34 : 0,
+    left: 0,
+    right: 0,
   },
   keyboardAvoid: {
     flex: 1,
@@ -242,7 +253,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 10 : 20,
+    paddingTop: Platform.OS === 'ios' ? STATUSBAR_HEIGHT + 10 : 20,
     paddingHorizontal: 20,
     paddingBottom: 10,
   },
@@ -265,7 +276,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 40,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 40, // Extra padding for bottom home indicator
   },
   welcomeSection: {
     marginTop: 10,
