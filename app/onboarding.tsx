@@ -6,14 +6,15 @@ import {
   StyleSheet, 
   ImageBackground,
   Dimensions,
-  SafeAreaView 
+  StatusBar,
+  Platform,
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
 interface CarouselSlide {
   id: number;
-  backgroundImage: any; // Use require() for images
+  backgroundImage: any;
   title: string;
   description: string;
 }
@@ -25,7 +26,7 @@ const OnboardingCarousel: React.FC = () => {
   const slides: CarouselSlide[] = [
     {
       id: 1,
-      backgroundImage: require('../assets/onboarding1.png'), // You'll need to update these paths
+      backgroundImage: require('../assets/onboarding1.png'),
       title: 'Welcome to Our Platform',
       description: 'Discover amazing features designed to enhance your experience',
     },
@@ -61,58 +62,51 @@ const OnboardingCarousel: React.FC = () => {
 
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000); // Change slide every 5 seconds
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [isAutoPlay, slides.length]);
-
-  // Handle keyboard navigation - Removed in React Native as it's web-specific
-  // useEffect(() => {
-  //   const handleKeyDown = (e: KeyboardEvent) => {
-  //     if (e.key === 'ArrowLeft') {
-  //       goToPrevious();
-  //     } else if (e.key === 'ArrowRight') {
-  //       goToNext();
-  //     }
-  //   };
-
-  //   window.addEventListener('keydown', handleKeyDown);
-  //   return () => window.removeEventListener('keydown', handleKeyDown);
-  // }, []);
-
-  const goToNext = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
-    setIsAutoPlay(false);
-  };
-
-  const goToPrevious = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-    setIsAutoPlay(false);
-  };
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
     setIsAutoPlay(false);
   };
 
-  const resumeAutoPlay = () => {
-    setIsAutoPlay(true);
+  const handleSkip = () => {
+    // Navigate to your main app screen
+    console.log('Skip/Get Started pressed');
+    // You would typically navigate to your main app screen here
+    // For example: router.replace('/(tabs)');
   };
 
+  const isLastSlide = currentSlide === slides.length - 1;
   const currentSlideData = slides[currentSlide];
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Carousel Slide */}
+    <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" />
+      
+      {/* Carousel Slide - Full screen */}
       <ImageBackground
         source={currentSlideData.backgroundImage}
         style={styles.imageBackground}
         resizeMode="cover"
       >
-        {/* Dark Overlay for better text readability */}
+        {/* Dark Overlay - Full screen */}
         <View style={styles.overlay} />
 
-        {/* Content Container */}
+        {/* Skip/Get Started Button - Top Right */}
+        <TouchableOpacity
+          onPress={handleSkip}
+          style={styles.skipButton}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.skipButtonText}>
+            {isLastSlide ? 'Get Started' : 'Skip'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Content Container - Moved closer to bottom */}
         <View style={styles.contentContainer}>
           <View style={styles.textContainer}>
             <Text style={styles.title}>
@@ -123,25 +117,6 @@ const OnboardingCarousel: React.FC = () => {
             </Text>
           </View>
         </View>
-
-        {/* Navigation Buttons */}
-        <TouchableOpacity
-          onPress={goToPrevious}
-          style={styles.navButtonLeft}
-          activeOpacity={0.7}
-          accessibilityLabel="Previous slide"
-        >
-          <Text style={styles.navButtonText}>‹</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={goToNext}
-          style={styles.navButtonRight}
-          activeOpacity={0.7}
-          accessibilityLabel="Next slide"
-        >
-          <Text style={styles.navButtonText}>›</Text>
-        </TouchableOpacity>
 
         {/* Dot Indicators */}
         <View style={styles.dotsContainer}>
@@ -170,15 +145,8 @@ const OnboardingCarousel: React.FC = () => {
             {isAutoPlay ? '❚❚' : '▶'}
           </Text>
         </TouchableOpacity>
-
-        {/* Slide Counter */}
-        <View style={styles.slideCounter}>
-          <Text style={styles.slideCounterText}>
-            {currentSlide + 1} / {slides.length}
-          </Text>
-        </View>
       </ImageBackground>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -196,14 +164,35 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
+  skipButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 54 : 30,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    zIndex: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  skipButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   contentContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end', // Changed from 'center' to 'flex-end'
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingBottom: 120, // Added padding to push content up from the very bottom
+    paddingTop: Platform.OS === 'ios' ? 44 : 0,
   },
   textContainer: {
     maxWidth: width * 0.8,
+    marginBottom: 40, // Added margin to create space above dots
   },
   title: {
     fontSize: 40,
@@ -224,44 +213,14 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
     lineHeight: 28,
   },
-  navButtonLeft: {
-    position: 'absolute',
-    left: 20,
-    top: '50%',
-    marginTop: -25,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 20,
-  },
-  navButtonRight: {
-    position: 'absolute',
-    right: 20,
-    top: '50%',
-    marginTop: -25,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 20,
-  },
-  navButtonText: {
-    color: '#fff',
-    fontSize: 30,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
   dotsContainer: {
     position: 'absolute',
     bottom: 60,
-    left: '50%',
-    marginLeft: -(15 * 2.5), // Approximate center
+    left: 0,
+    right: 0,
     flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: 12,
     zIndex: 20,
   },
@@ -291,22 +250,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  slideCounter: {
-    position: 'absolute',
-    top: 50,
-    right: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    zIndex: 20,
-  },
-  slideCounterText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
     textAlign: 'center',
   },
 });
