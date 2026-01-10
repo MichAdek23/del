@@ -21,6 +21,7 @@ const { width, height } = Dimensions.get('window');
 
 // Get status bar height for different platforms
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
+const BOTTOM_SAFE_AREA = Platform.OS === 'ios' ? 34 : 0;
 
 export default function ConsumerSignup() {
   const [formData, setFormData] = useState({
@@ -77,148 +78,151 @@ export default function ConsumerSignup() {
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
       
-      <ImageBackground
-        source={require('@/assets/onboarding1.png')}
-        style={styles.background}
-        resizeMode="cover"
-      >
+      {/* Background container that extends beyond safe area */}
+      <View style={styles.backgroundContainer}>
+        <ImageBackground
+          source={require('@/assets/onboarding1.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
+        
         {/* Dark Overlay - Full screen including all safe areas */}
         <View style={styles.overlay} />
+      </View>
 
-        <KeyboardAvoidingView
-          style={styles.keyboardAvoid}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          {/* SafeAreaView only for content, not background */}
-          <SafeAreaView style={styles.safeAreaContent}>
-            {/* Header with back button */}
-            <View style={styles.header}>
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={() => router.back()}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="arrow-back" size={24} color="#fff" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Join DELIVA</Text>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* SafeAreaView only for content, not background */}
+        <SafeAreaView style={styles.safeAreaContent}>
+          {/* Header with back button */}
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Join DELIVA</Text>
+          </View>
+
+          <ScrollView 
+            style={styles.scrollView}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Welcome Section */}
+            <View style={styles.welcomeSection}>
+              <Text style={styles.welcomeTitle}>Create Account</Text>
+              <Text style={styles.welcomeSubtitle}>
+                Sign up to start your journey with us
+              </Text>
             </View>
 
-            <ScrollView 
-              style={styles.scrollView}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="handled"
-            >
-              {/* Welcome Section */}
-              <View style={styles.welcomeSection}>
-                <Text style={styles.welcomeTitle}>Create Account</Text>
-                <Text style={styles.welcomeSubtitle}>
-                  Sign up to start your journey with us
+            {/* Form Container */}
+            <View style={styles.formContainer}>
+              {/* Name Row */}
+              <View style={styles.nameRow}>
+                <View style={styles.nameInput}>
+                  <Input
+                    label="First Name"
+                    placeholder="Jane"
+                    value={formData.firstName}
+                    onChangeText={(text) => updateField('firstName', text)}
+                    error={errors.firstName}
+                    variant="light"
+                    autoCapitalize="words"
+                  />
+                </View>
+                <View style={styles.nameInput}>
+                  <Input
+                    label="Last Name"
+                    placeholder="Doe"
+                    value={formData.lastName}
+                    onChangeText={(text) => updateField('lastName', text)}
+                    error={errors.lastName}
+                    variant="light"
+                    autoCapitalize="words"
+                  />
+                </View>
+              </View>
+
+              <Input
+                label="Email Address"
+                placeholder="jane@example.com"
+                value={formData.email}
+                onChangeText={(text) => updateField('email', text)}
+                keyboardType="email-address"
+                error={errors.email}
+                variant="light"
+                autoCapitalize="none"
+              />
+
+              <Input
+                label="Phone Number"
+                placeholder="+1 (987) 654-3210"
+                value={formData.phone}
+                onChangeText={(text) => updateField('phone', text)}
+                keyboardType="phone-pad"
+                error={errors.phone}
+                variant="light"
+              />
+
+              <Input
+                label="Password"
+                placeholder="Create a strong password"
+                value={formData.password}
+                onChangeText={(text) => updateField('password', text)}
+                secureTextEntry
+                error={errors.password}
+                variant="light"
+              />
+
+              <Input
+                label="Confirm Password"
+                placeholder="Re-enter your password"
+                value={formData.confirmPassword}
+                onChangeText={(text) => updateField('confirmPassword', text)}
+                secureTextEntry
+                error={errors.confirmPassword}
+                variant="light"
+              />
+
+              {/* Terms and Conditions */}
+              <View style={styles.termsContainer}>
+                <Text style={styles.termsText}>
+                  By creating an account, you agree to our{' '}
+                  <Text style={styles.termsLink}>Terms of Service</Text>{' '}
+                  and{' '}
+                  <Text style={styles.termsLink}>Privacy Policy</Text>
                 </Text>
               </View>
 
-              {/* Form Container */}
-              <View style={styles.formContainer}>
-                {/* Name Row */}
-                <View style={styles.nameRow}>
-                  <View style={styles.nameInput}>
-                    <Input
-                      label="First Name"
-                      placeholder="Jane"
-                      value={formData.firstName}
-                      onChangeText={(text) => updateField('firstName', text)}
-                      error={errors.firstName}
-                      variant="light"
-                      autoCapitalize="words"
-                    />
-                  </View>
-                  <View style={styles.nameInput}>
-                    <Input
-                      label="Last Name"
-                      placeholder="Doe"
-                      value={formData.lastName}
-                      onChangeText={(text) => updateField('lastName', text)}
-                      error={errors.lastName}
-                      variant="light"
-                      autoCapitalize="words"
-                    />
-                  </View>
-                </View>
+              {/* Sign Up Button */}
+              <Button
+                title={isLoading ? "Creating Account..." : "Create Account"}
+                onPress={handleSignup}
+                size="large"
+                style={styles.signupButton}
+                loading={isLoading}
+                disabled={isLoading}
+                variant="primary"
+              />
 
-                <Input
-                  label="Email Address"
-                  placeholder="jane@example.com"
-                  value={formData.email}
-                  onChangeText={(text) => updateField('email', text)}
-                  keyboardType="email-address"
-                  error={errors.email}
-                  variant="light"
-                  autoCapitalize="none"
-                />
-
-                <Input
-                  label="Phone Number"
-                  placeholder="+1 (987) 654-3210"
-                  value={formData.phone}
-                  onChangeText={(text) => updateField('phone', text)}
-                  keyboardType="phone-pad"
-                  error={errors.phone}
-                  variant="light"
-                />
-
-                <Input
-                  label="Password"
-                  placeholder="Create a strong password"
-                  value={formData.password}
-                  onChangeText={(text) => updateField('password', text)}
-                  secureTextEntry
-                  error={errors.password}
-                  variant="light"
-                />
-
-                <Input
-                  label="Confirm Password"
-                  placeholder="Re-enter your password"
-                  value={formData.confirmPassword}
-                  onChangeText={(text) => updateField('confirmPassword', text)}
-                  secureTextEntry
-                  error={errors.confirmPassword}
-                  variant="light"
-                />
-
-                {/* Terms and Conditions */}
-                <View style={styles.termsContainer}>
-                  <Text style={styles.termsText}>
-                    By creating an account, you agree to our{' '}
-                    <Text style={styles.termsLink}>Terms of Service</Text>{' '}
-                    and{' '}
-                    <Text style={styles.termsLink}>Privacy Policy</Text>
-                  </Text>
-                </View>
-
-                {/* Sign Up Button */}
-                <Button
-                  title={isLoading ? "Creating Account..." : "Create Account"}
-                  onPress={handleSignup}
-                  size="large"
-                  style={styles.signupButton}
-                  loading={isLoading}
-                  disabled={isLoading}
-                  variant="primary"
-                />
-
-                {/* Already have account */}
-                <View style={styles.loginContainer}>
-                  <Text style={styles.loginText}>Already have an account? </Text>
-                  <TouchableOpacity onPress={() => router.push('/auth/login')}>
-                    <Text style={styles.loginLink}>Sign In</Text>
-                  </TouchableOpacity>
-                </View>
+              {/* Already have account */}
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>Already have an account? </Text>
+                <TouchableOpacity onPress={() => router.push('/auth/login')}>
+                  <Text style={styles.loginLink}>Sign In</Text>
+                </TouchableOpacity>
               </View>
-            </ScrollView>
-          </SafeAreaView>
-        </KeyboardAvoidingView>
-      </ImageBackground>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -228,21 +232,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  background: {
+  // Background container that extends beyond safe area
+  backgroundContainer: {
+    position: 'absolute',
+    top: -STATUSBAR_HEIGHT,
+    bottom: -BOTTOM_SAFE_AREA,
+    left: 0,
+    right: 0,
+  },
+  backgroundImage: {
     width: '100%',
     height: '100%',
-    // Extend beyond safe area on all sides
-    marginTop: Platform.OS === 'ios' ? -STATUSBAR_HEIGHT : 0,
-    marginBottom: Platform.OS === 'ios' ? -34 : 0, // For bottom home indicator
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    // Extend into safe areas
-    top: Platform.OS === 'ios' ? -STATUSBAR_HEIGHT : 0,
-    bottom: Platform.OS === 'ios' ? -34 : 0,
-    left: 0,
-    right: 0,
   },
   keyboardAvoid: {
     flex: 1,
@@ -253,7 +257,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? STATUSBAR_HEIGHT + 10 : 20,
+    paddingTop: Platform.OS === 'ios' ? 10 : 20,
     paddingHorizontal: 20,
     paddingBottom: 10,
   },
@@ -276,7 +280,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 40, // Extra padding for bottom home indicator
+    paddingBottom: Platform.OS === 'ios' ? BOTTOM_SAFE_AREA + 20 : 40,
   },
   welcomeSection: {
     marginTop: 10,
