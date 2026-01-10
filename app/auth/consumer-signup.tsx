@@ -204,7 +204,7 @@ export default function ConsumerSignup() {
               {/* Already have account */}
               <View style={styles.loginContainer}>
                 <Text style={styles.loginText}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => router.push('/login')}>
+                <TouchableOpacity onPress={() => router.push('/auth/login')}>
                   <Text style={styles.loginLink}>Sign In</Text>
                 </TouchableOpacity>
               </View>
