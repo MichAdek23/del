@@ -71,169 +71,172 @@ export default function ConsumerSignup() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" />
+      
       <ImageBackground
-        source={require('@/assets/onboarding1.png')} // Updated path
+        source={require('@/assets/onboarding1.png')}
         style={styles.background}
         resizeMode="cover"
       >
-        {/* Dark Overlay - Extends into safe area */}
+        {/* Dark Overlay - Full screen including all safe areas */}
         <View style={styles.overlay} />
-        
-        <StatusBar translucent backgroundColor="transparent" />
 
         <KeyboardAvoidingView
-          style={styles.container}
+          style={styles.keyboardAvoid}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          {/* Header with back button - Inside safe area */}
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => router.back()}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="arrow-back" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Join DELIVA</Text>
-          </View>
-
-          <ScrollView 
-            style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {/* Welcome Section */}
-            <View style={styles.welcomeSection}>
-              <Text style={styles.welcomeTitle}>Create Account</Text>
-              <Text style={styles.welcomeSubtitle}>
-                Sign up to start your journey with us
-              </Text>
+          <SafeAreaView style={styles.safeAreaContent}>
+            {/* Header with back button */}
+            <View style={styles.header}>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => router.back()}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Join DELIVA</Text>
             </View>
 
-            {/* Form Container */}
-            <View style={styles.formContainer}>
-              {/* Name Row */}
-              <View style={styles.nameRow}>
-                <View style={styles.nameInput}>
-                  <Input
-                    label="First Name"
-                    placeholder="Jane"
-                    value={formData.firstName}
-                    onChangeText={(text) => updateField('firstName', text)}
-                    error={errors.firstName}
-                    variant="light"
-                    autoCapitalize="words"
-                  />
-                </View>
-                <View style={styles.nameInput}>
-                  <Input
-                    label="Last Name"
-                    placeholder="Doe"
-                    value={formData.lastName}
-                    onChangeText={(text) => updateField('lastName', text)}
-                    error={errors.lastName}
-                    variant="light"
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
-
-              <Input
-                label="Email Address"
-                placeholder="jane@example.com"
-                value={formData.email}
-                onChangeText={(text) => updateField('email', text)}
-                keyboardType="email-address"
-                error={errors.email}
-                variant="light"
-                autoCapitalize="none"
-              />
-
-              <Input
-                label="Phone Number"
-                placeholder="+1 (987) 654-3210"
-                value={formData.phone}
-                onChangeText={(text) => updateField('phone', text)}
-                keyboardType="phone-pad"
-                error={errors.phone}
-                variant="light"
-              />
-
-              <Input
-                label="Password"
-                placeholder="Create a strong password"
-                value={formData.password}
-                onChangeText={(text) => updateField('password', text)}
-                secureTextEntry
-                error={errors.password}
-                variant="light"
-              />
-
-              <Input
-                label="Confirm Password"
-                placeholder="Re-enter your password"
-                value={formData.confirmPassword}
-                onChangeText={(text) => updateField('confirmPassword', text)}
-                secureTextEntry
-                error={errors.confirmPassword}
-                variant="light"
-              />
-
-              {/* Terms and Conditions */}
-              <View style={styles.termsContainer}>
-                <Text style={styles.termsText}>
-                  By creating an account, you agree to our{' '}
-                  <Text style={styles.termsLink}>Terms of Service</Text>{' '}
-                  and{' '}
-                  <Text style={styles.termsLink}>Privacy Policy</Text>
+            <ScrollView 
+              style={styles.scrollView}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Welcome Section */}
+              <View style={styles.welcomeSection}>
+                <Text style={styles.welcomeTitle}>Create Account</Text>
+                <Text style={styles.welcomeSubtitle}>
+                  Sign up to start your journey with us
                 </Text>
               </View>
 
-              {/* Sign Up Button */}
-              <Button
-                title={isLoading ? "Creating Account..." : "Create Account"}
-                onPress={handleSignup}
-                size="large"
-                style={styles.signupButton}
-                loading={isLoading}
-                disabled={isLoading}
-                variant="primary"
-              />
+              {/* Form Container */}
+              <View style={styles.formContainer}>
+                {/* Name Row */}
+                <View style={styles.nameRow}>
+                  <View style={styles.nameInput}>
+                    <Input
+                      label="First Name"
+                      placeholder="Jane"
+                      value={formData.firstName}
+                      onChangeText={(text) => updateField('firstName', text)}
+                      error={errors.firstName}
+                      variant="light"
+                      autoCapitalize="words"
+                    />
+                  </View>
+                  <View style={styles.nameInput}>
+                    <Input
+                      label="Last Name"
+                      placeholder="Doe"
+                      value={formData.lastName}
+                      onChangeText={(text) => updateField('lastName', text)}
+                      error={errors.lastName}
+                      variant="light"
+                      autoCapitalize="words"
+                    />
+                  </View>
+                </View>
 
-              {/* Already have account */}
-              <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => router.push('/auth/login')}>
-                  <Text style={styles.loginLink}>Sign In</Text>
-                </TouchableOpacity>
+                <Input
+                  label="Email Address"
+                  placeholder="jane@example.com"
+                  value={formData.email}
+                  onChangeText={(text) => updateField('email', text)}
+                  keyboardType="email-address"
+                  error={errors.email}
+                  variant="light"
+                  autoCapitalize="none"
+                />
+
+                <Input
+                  label="Phone Number"
+                  placeholder="+1 (987) 654-3210"
+                  value={formData.phone}
+                  onChangeText={(text) => updateField('phone', text)}
+                  keyboardType="phone-pad"
+                  error={errors.phone}
+                  variant="light"
+                />
+
+                <Input
+                  label="Password"
+                  placeholder="Create a strong password"
+                  value={formData.password}
+                  onChangeText={(text) => updateField('password', text)}
+                  secureTextEntry
+                  error={errors.password}
+                  variant="light"
+                />
+
+                <Input
+                  label="Confirm Password"
+                  placeholder="Re-enter your password"
+                  value={formData.confirmPassword}
+                  onChangeText={(text) => updateField('confirmPassword', text)}
+                  secureTextEntry
+                  error={errors.confirmPassword}
+                  variant="light"
+                />
+
+                {/* Terms and Conditions */}
+                <View style={styles.termsContainer}>
+                  <Text style={styles.termsText}>
+                    By creating an account, you agree to our{' '}
+                    <Text style={styles.termsLink}>Terms of Service</Text>{' '}
+                    and{' '}
+                    <Text style={styles.termsLink}>Privacy Policy</Text>
+                  </Text>
+                </View>
+
+                {/* Sign Up Button */}
+                <Button
+                  title={isLoading ? "Creating Account..." : "Create Account"}
+                  onPress={handleSignup}
+                  size="large"
+                  style={styles.signupButton}
+                  loading={isLoading}
+                  disabled={isLoading}
+                  variant="primary"
+                />
+
+                {/* Already have account */}
+                <View style={styles.loginContainer}>
+                  <Text style={styles.loginText}>Already have an account? </Text>
+                  <TouchableOpacity onPress={() => router.push('/auth/login')}>
+                    <Text style={styles.loginLink}>Sign In</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </SafeAreaView>
         </KeyboardAvoidingView>
       </ImageBackground>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#000',
   },
   background: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    width: width,
+    height: height,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    // Extend into safe area on iOS
-    top: Platform.OS === 'ios' ? -50 : 0,
-    height: Platform.OS === 'ios' ? height + 50 : height,
   },
-  container: {
+  keyboardAvoid: {
+    flex: 1,
+  },
+  safeAreaContent: {
     flex: 1,
   },
   header: {
