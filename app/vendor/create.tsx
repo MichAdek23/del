@@ -34,7 +34,7 @@ export default function VendorCreateOrder() {
       return;
     }
 
-    router.push('/(vendor)/orders');
+    router.push('/vendor/orders');
   };
 
   return (

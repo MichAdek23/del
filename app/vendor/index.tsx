@@ -44,13 +44,13 @@ export default function VendorDashboard() {
         </View>
         <Button
           title="Create New Order"
-          onPress={() => router.push('/(vendor)/create')}
+          onPress={() => router.push('/vendor/create')}
           size="large"
           style={styles.fullButton}
         />
         <Button
           title="View All Orders"
-          onPress={() => router.push('/(vendor)/orders')}
+          onPress={() => router.push('/vendor/orders')}
           variant="secondary"
           size="large"
           style={styles.fullButton}

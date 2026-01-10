@@ -27,7 +27,7 @@ export default function RiderDashboard() {
 
   const handleOrderAccept = (delivery: any) => {
     setActiveDelivery(delivery);
-    router.push(`/(rider)/delivery/${delivery.id}`);
+    router.push(`/rider/delivery/${delivery.id}`);
   };
 
   return (

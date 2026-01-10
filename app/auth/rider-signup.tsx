@@ -37,7 +37,7 @@ export default function RiderSignup() {
       return;
     }
 
-    router.replace('/(rider)');
+    router.replace('/rider');
   };
 
   const updateField = (field: string, value: string) => {

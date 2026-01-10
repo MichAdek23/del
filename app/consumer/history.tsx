@@ -27,7 +27,7 @@ export default function ConsumerHistory() {
             <Card
               key={delivery.id}
               style={{ marginBottom: 12 }}
-              onPress={() => router.push(`/(consumer)/delivery/${delivery.id}`)}
+              onPress={() => router.push(`/consumer/delivery/${delivery.id}`)}
             >
               <View style={styles.historyItem}>
                 <View style={styles.dateIcon}>

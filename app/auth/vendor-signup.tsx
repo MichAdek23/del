@@ -34,7 +34,7 @@ export default function VendorSignup() {
       return;
     }
 
-    router.replace('/(vendor)');
+    router.replace('/vendor');
   };
 
   const updateField = (field: string, value: string) => {

@@ -65,7 +65,7 @@ export default function ConsumerSignup() {
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      router.replace('/(consumer)');
+      router.replace('/consumer');
     }, 1500);
   };
 

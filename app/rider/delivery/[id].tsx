@@ -105,7 +105,7 @@ export default function RiderDeliveryDetail() {
           {status === 'delivered' && (
             <Button
               title="Delivery Completed!"
-              onPress={() => router.replace('/(rider)')}
+              onPress={() => router.replace('/rider')}
               size="large"
               disabled={true}
             />
