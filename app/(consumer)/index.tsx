@@ -45,7 +45,7 @@ export default function ConsumerHome() {
   const [activeSheet, setActiveSheet] = useState(null);
   const [sheetAnimation] = useState(new Animated.Value(height));
   const [panY] = useState(new Animated.Value(0));
-  const [quickActionsAnimation] = useState(new Animated.Value(QUICK_ACTIONS_HEIGHT * 0.3));
+  const [quickActionsHeight] = useState(new Animated.Value(QUICK_ACTIONS_HEIGHT * 0.3));
   const fadeAnim = useState(new Animated.Value(1))[0];
   const activeDeliveries = mockDeliveries.filter((d) => d.status !== 'delivered');
 
@@ -74,9 +74,9 @@ export default function ConsumerHome() {
   const openSheet = (sheetName) => {
     setActiveSheet(sheetName);
     // Close quick actions when opening a sheet
-    Animated.spring(quickActionsAnimation, {
+    Animated.spring(quickActionsHeight, {
       toValue: QUICK_ACTIONS_HEIGHT * 0.3,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
     // Open the sheet
     Animated.spring(sheetAnimation, {
@@ -96,9 +96,15 @@ export default function ConsumerHome() {
   };
 
   const toggleQuickActions = () => {
-    Animated.spring(quickActionsAnimation, {
-      toValue: quickActionsAnimation._value === QUICK_ACTIONS_HEIGHT * 0.3 ? QUICK_ACTIONS_HEIGHT : QUICK_ACTIONS_HEIGHT * 0.3,
-      useNativeDriver: true,
+    const targetHeight = quickActionsHeight._value === QUICK_ACTIONS_HEIGHT * 0.3 
+      ? QUICK_ACTIONS_HEIGHT 
+      : QUICK_ACTIONS_HEIGHT * 0.3;
+    
+    Animated.spring(quickActionsHeight, {
+      toValue: targetHeight,
+      useNativeDriver: false,
+      tension: 40,
+      friction: 7,
     }).start();
   };
 
@@ -174,41 +180,12 @@ export default function ConsumerHome() {
         </ScrollView>
       </View>
 
-      {activeSheet && (
-        <View style={styles.overlay}>
-          <TouchableOpacity 
-            style={StyleSheet.absoluteFillObject}
-            onPress={closeSheet}
-            activeOpacity={1}
-          />
-        </View>
-      )}
-
-      <Animated.View 
-        style={[
-          styles.sheetContainer,
-          {
-            transform: [
-              { translateY: Animated.add(sheetAnimation, panY) },
-            ],
-          },
-        ]}
-        {...panResponder.panHandlers}
-      >
-        <View style={styles.sheetHandle}>
-          <View style={styles.handleBar} />
-        </View>
-        
-        <View style={styles.sheetContent}>
-          {renderSheetContent()}
-        </View>
-      </Animated.View>
-
+      {/* Quick Actions Sheet - Rendered FIRST */}
       <Animated.View 
         style={[
           styles.quickActionsSheet,
           {
-            height: quickActionsAnimation,
+            height: quickActionsHeight,
           },
         ]}
       >
@@ -284,6 +261,38 @@ export default function ConsumerHome() {
             </View>
           </View>
         </ScrollView>
+      </Animated.View>
+
+      {/* Overlay - Rendered SECOND */}
+      {activeSheet && (
+        <View style={styles.overlay}>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFillObject}
+            onPress={closeSheet}
+            activeOpacity={1}
+          />
+        </View>
+      )}
+
+      {/* Sheet Modal - Rendered LAST */}
+      <Animated.View 
+        style={[
+          styles.sheetContainer,
+          {
+            transform: [
+              { translateY: Animated.add(sheetAnimation, panY) },
+            ],
+          },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.sheetHandle}>
+          <View style={styles.handleBar} />
+        </View>
+        
+        <View style={styles.sheetContent}>
+          {renderSheetContent()}
+        </View>
       </Animated.View>
     </View>
   );
@@ -707,6 +716,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
     overflow: 'hidden',
+    zIndex: 50,
   },
   quickActionsToggle: {
     paddingVertical: 13,
@@ -791,12 +801,14 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    zIndex: 99,
   },
   sheetContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
+    bottom: 0,
     height: SHEET_HEIGHT,
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
@@ -806,6 +818,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 10,
+    zIndex: 100,
   },
   sheetHandle: {
     alignItems: 'center',
@@ -1091,4 +1104,4 @@ const sheetStyles = StyleSheet.create({
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
     marginHorizontal: 4,
   },
-}); 
+});
