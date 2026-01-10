@@ -9,23 +9,91 @@ import {
   Platform,
   StatusBar,
   Animated,
-  SafeAreaView
+  SafeAreaView,
+  Modal,
+  PanResponder
 } from 'react-native';
-import { Button, Card } from '@/components';
+import { Button, Card, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import { Plus, Zap, MapPin, Package, Clock, User, Home, TruckFast, History, X } from 'lucide-react-native';
+import { 
+  Plus, 
+  Zap, 
+  MapPin, 
+  Package, 
+  Clock, 
+  User, 
+  Home, 
+  TruckFast, 
+  History, 
+  X, 
+  Calendar,
+  CreditCard,
+  MessageSquare,
+  Settings,
+  ArrowRight,
+  Star,
+  CheckCircle,
+  Phone,
+  Mail,
+  Navigation
+} from 'lucide-react-native';
 import { mockConsumer, mockDeliveries } from '@/constants/mockData';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+
 
 const { width, height } = Dimensions.get('window');
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
+const SHEET_HEIGHT = height * 0.7; // 70% sheet modal
 
 export default function ConsumerHome() {
   const [user] = useState(mockConsumer);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [activeSheet, setActiveSheet] = useState(null); // null, 'newDelivery', 'tracking', 'profile', etc.
+  const [sheetAnimation] = useState(new Animated.Value(height)); // Start off-screen
+  const [panY] = useState(new Animated.Value(0));
   const fadeAnim = useState(new Animated.Value(1))[0];
   const activeDeliveries = mockDeliveries.filter((d) => d.status !== 'delivered');
+
+  // Pan responder for swipe down to close
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return gestureState.dy > 10;
+    },
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dy > 0) {
+        panY.setValue(gestureState.dy);
+      }
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > 100) {
+        closeSheet();
+      } else {
+        Animated.spring(panY, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+  });
+
+  const openSheet = (sheetName) => {
+    setActiveSheet(sheetName);
+    Animated.spring(sheetAnimation, {
+      toValue: height - SHEET_HEIGHT,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeSheet = () => {
+    Animated.spring(sheetAnimation, {
+      toValue: height,
+      useNativeDriver: true,
+    }).start(() => {
+      setActiveSheet(null);
+      panY.setValue(0);
+    });
+  };
 
   const handleCloseWelcome = () => {
     Animated.timing(fadeAnim, {
@@ -48,6 +116,26 @@ export default function ConsumerHome() {
     { id: 3, latitude: 37.77825, longitude: -122.4424, title: 'Delivery Destination' },
   ];
 
+  // Render the active sheet content
+  const renderSheetContent = () => {
+    switch (activeSheet) {
+      case 'newDelivery':
+        return <NewDeliverySheet closeSheet={closeSheet} />;
+      case 'tracking':
+        return <TrackingSheet closeSheet={closeSheet} />;
+      case 'packages':
+        return <PackagesSheet closeSheet={closeSheet} deliveries={activeDeliveries} />;
+      case 'schedule':
+        return <ScheduleSheet closeSheet={closeSheet} />;
+      case 'profile':
+        return <ProfileSheet closeSheet={closeSheet} user={user} />;
+      case 'deliveryDetails':
+        return <DeliveryDetailsSheet closeSheet={closeSheet} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
@@ -62,7 +150,7 @@ export default function ConsumerHome() {
           showsMyLocationButton={false}
           showsTraffic={true}
           showsBuildings={true}
-          zoomEnabled={true}
+          zoomEnabled={false}
           scrollEnabled={false}
           pitchEnabled={false}
           rotateEnabled={false}
@@ -102,35 +190,58 @@ export default function ConsumerHome() {
         >
           {/* Quick Actions */}
           <View style={styles.quickActions}>
-            <Button
-              title="New Delivery"
-              onPress={() => router.push('/(consumer)/create-delivery')}
-              size="large"
-              style={styles.fullButton}
-              icon={<Plus size={20} color="#fff" />}
-              variant="primary"
-            />
+            <TouchableOpacity 
+              style={styles.newDeliveryButton}
+              onPress={() => openSheet('newDelivery')}
+              activeOpacity={0.8}
+            >
+              <Plus size={24} color="#fff" style={styles.buttonIcon} />
+              <Text style={styles.newDeliveryText}>New Delivery</Text>
+            </TouchableOpacity>
             
             <View style={styles.quickActionRow}>
-              <TouchableOpacity style={styles.quickActionButton}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => openSheet('tracking')}
+                activeOpacity={0.8}
+              >
                 <View style={styles.quickActionIcon}>
-                  <MapPin size={24} color="#007AFF" />
+                  <Navigation size={24} color="#007AFF" />
                 </View>
                 <Text style={styles.quickActionText}>Track</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.quickActionButton}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => openSheet('packages')}
+                activeOpacity={0.8}
+              >
                 <View style={styles.quickActionIcon}>
                   <Package size={24} color="#007AFF" />
                 </View>
                 <Text style={styles.quickActionText}>Packages</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.quickActionButton}>
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => openSheet('schedule')}
+                activeOpacity={0.8}
+              >
                 <View style={styles.quickActionIcon}>
-                  <Clock size={24} color="#007AFF" />
+                  <Calendar size={24} color="#007AFF" />
                 </View>
                 <Text style={styles.quickActionText}>Schedule</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => openSheet('profile')}
+                activeOpacity={0.8}
+              >
+                <View style={styles.quickActionIcon}>
+                  <User size={24} color="#007AFF" />
+                </View>
+                <Text style={styles.quickActionText}>Profile</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -150,7 +261,7 @@ export default function ConsumerHome() {
                 <DeliveryCard
                   key={delivery.id}
                   delivery={delivery}
-                  onPress={() => router.push(`/(consumer)/delivery/${delivery.id}`)}
+                  onPress={() => openSheet('deliveryDetails')}
                 />
               ))
             ) : (
@@ -189,6 +300,377 @@ export default function ConsumerHome() {
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Sheet Modal Overlay */}
+      {activeSheet && (
+        <View style={styles.overlay}>
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFillObject}
+            onPress={closeSheet}
+            activeOpacity={1}
+          />
+        </View>
+      )}
+
+      {/* Sheet Modal */}
+      <Animated.View 
+        style={[
+          styles.sheetContainer,
+          {
+            transform: [
+              { translateY: Animated.add(sheetAnimation, panY) },
+            ],
+          },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        {/* Sheet Handle */}
+        <View style={styles.sheetHandle}>
+          <View style={styles.handleBar} />
+        </View>
+        
+        {/* Sheet Content */}
+        <View style={styles.sheetContent}>
+          {renderSheetContent()}
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
+
+// Sheet Components
+function NewDeliverySheet({ closeSheet }: any) {
+  const [formData, setFormData] = useState({
+    from: '',
+    to: '',
+    packageType: '',
+    description: '',
+    weight: '',
+  });
+
+  return (
+    <View style={sheetStyles.container}>
+      <View style={sheetStyles.header}>
+        <Text style={sheetStyles.title}>New Delivery</Text>
+        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
+          <X size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Input
+          label="Pickup Address"
+          placeholder="Enter pickup location"
+          value={formData.from}
+          onChangeText={(text) => setFormData({...formData, from: text})}
+          icon={<MapPin size={20} color="#666" />}
+          variant="light"
+        />
+        
+        <Input
+          label="Delivery Address"
+          placeholder="Enter delivery location"
+          value={formData.to}
+          onChangeText={(text) => setFormData({...formData, to: text})}
+          icon={<MapPin size={20} color="#666" />}
+          variant="light"
+        />
+        
+        <Input
+          label="Package Type"
+          placeholder="e.g., Document, Parcel, Food"
+          value={formData.packageType}
+          onChangeText={(text) => setFormData({...formData, packageType: text})}
+          icon={<Package size={20} color="#666" />}
+          variant="light"
+        />
+        
+        <Input
+          label="Description"
+          placeholder="Describe your package"
+          value={formData.description}
+          onChangeText={(text) => setFormData({...formData, description: text})}
+          multiline
+          numberOfLines={3}
+          variant="light"
+        />
+        
+        <Input
+          label="Weight (kg)"
+          placeholder="Approximate weight"
+          value={formData.weight}
+          onChangeText={(text) => setFormData({...formData, weight: text})}
+          keyboardType="numeric"
+          variant="light"
+        />
+        
+        <View style={sheetStyles.buttonRow}>
+          <Button
+            title="Cancel"
+            onPress={closeSheet}
+            variant="outline"
+            style={sheetStyles.cancelButton}
+          />
+          <Button
+            title="Create Delivery"
+            onPress={() => {
+              // Handle delivery creation
+              closeSheet();
+            }}
+            variant="primary"
+            style={sheetStyles.submitButton}
+          />
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function TrackingSheet({ closeSheet }: any) {
+  const [trackingNumber, setTrackingNumber] = useState('');
+  
+  return (
+    <View style={sheetStyles.container}>
+      <View style={sheetStyles.header}>
+        <Text style={sheetStyles.title}>Track Package</Text>
+        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
+          <X size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={sheetStyles.trackingContainer}>
+        <Input
+          placeholder="Enter tracking number"
+          value={trackingNumber}
+          onChangeText={setTrackingNumber}
+          icon={<Package size={20} color="#666" />}
+          variant="light"
+        />
+        
+        <Button
+          title="Track"
+          onPress={() => {}}
+          variant="primary"
+          style={sheetStyles.trackButton}
+        />
+        
+        {/* Tracking Status Example */}
+        <View style={sheetStyles.trackingStatus}>
+          <View style={sheetStyles.statusStep}>
+            <View style={[sheetStyles.statusDot, sheetStyles.activeDot]} />
+            <Text style={sheetStyles.statusText}>Package Picked Up</Text>
+            <Text style={sheetStyles.statusTime}>Today, 10:30 AM</Text>
+          </View>
+          
+          <View style={sheetStyles.statusStep}>
+            <View style={[sheetStyles.statusDot, sheetStyles.activeDot]} />
+            <Text style={sheetStyles.statusText}>In Transit</Text>
+            <Text style={sheetStyles.statusTime}>Today, 11:45 AM</Text>
+          </View>
+          
+          <View style={sheetStyles.statusStep}>
+            <View style={sheetStyles.statusDot} />
+            <Text style={sheetStyles.statusText}>Out for Delivery</Text>
+            <Text style={sheetStyles.statusTime}>Estimated: 2:00 PM</Text>
+          </View>
+          
+          <View style={sheetStyles.statusStep}>
+            <View style={sheetStyles.statusDot} />
+            <Text style={sheetStyles.statusText}>Delivered</Text>
+            <Text style={sheetStyles.statusTime}>Estimated: 4:00 PM</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function PackagesSheet({ closeSheet, deliveries }: any) {
+  return (
+    <View style={sheetStyles.container}>
+      <View style={sheetStyles.header}>
+        <Text style={sheetStyles.title}>My Packages</Text>
+        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
+          <X size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {deliveries.map((delivery: any) => (
+          <View key={delivery.id} style={sheetStyles.packageItem}>
+            <View style={sheetStyles.packageIcon}>
+              <Package size={20} color="#007AFF" />
+            </View>
+            <View style={sheetStyles.packageInfo}>
+              <Text style={sheetStyles.packageTitle}>{delivery.packageDescription}</Text>
+              <Text style={sheetStyles.packageStatus}>{delivery.status}</Text>
+              <Text style={sheetStyles.packageCost}>${delivery.estimatedCost.toFixed(2)}</Text>
+            </View>
+            <ArrowRight size={20} color="#666" />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function ScheduleSheet({ closeSheet }: any) {
+  return (
+    <View style={sheetStyles.container}>
+      <View style={sheetStyles.header}>
+        <Text style={sheetStyles.title}>Schedule Delivery</Text>
+        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
+          <X size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Input
+          label="Pickup Date & Time"
+          placeholder="Select date and time"
+          icon={<Calendar size={20} color="#666" />}
+          variant="light"
+        />
+        
+        <Input
+          label="Recipient Availability"
+          placeholder="e.g., 9 AM - 5 PM"
+          icon={<Clock size={20} color="#666" />}
+          variant="light"
+        />
+        
+        <View style={sheetStyles.scheduleOptions}>
+          <Text style={sheetStyles.sectionTitle}>Schedule Options</Text>
+          {['Express (2 hours)', 'Same Day', 'Next Day', 'Scheduled'].map((option, index) => (
+            <TouchableOpacity key={index} style={sheetStyles.optionItem}>
+              <Text style={sheetStyles.optionText}>{option}</Text>
+              <Text style={sheetStyles.optionPrice}>$15.99</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+        <Button
+          title="Schedule Delivery"
+          onPress={closeSheet}
+          variant="primary"
+          style={sheetStyles.submitButton}
+        />
+      </ScrollView>
+    </View>
+  );
+}
+
+function ProfileSheet({ closeSheet, user }: any) {
+  return (
+    <View style={sheetStyles.container}>
+      <View style={sheetStyles.header}>
+        <Text style={sheetStyles.title}>My Profile</Text>
+        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
+          <X size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={sheetStyles.profileHeader}>
+          <View style={sheetStyles.profileAvatar}>
+            <Text style={sheetStyles.avatarText}>
+              {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+            </Text>
+          </View>
+          <Text style={sheetStyles.profileName}>{user.firstName} {user.lastName}</Text>
+          <Text style={sheetStyles.profileEmail}>{user.email}</Text>
+        </View>
+        
+        <View style={sheetStyles.menuSection}>
+          {[
+            { icon: <CreditCard size={20} color="#007AFF" />, label: 'Payment Methods' },
+            { icon: <MapPin size={20} color="#007AFF" />, label: 'Saved Addresses' },
+            { icon: <MessageSquare size={20} color="#007AFF" />, label: 'Messages' },
+            { icon: <Settings size={20} color="#007AFF" />, label: 'Settings' },
+            { icon: <Star size={20} color="#007AFF" />, label: 'Rate Us' },
+          ].map((item, index) => (
+            <TouchableOpacity key={index} style={sheetStyles.menuItem}>
+              {item.icon}
+              <Text style={sheetStyles.menuText}>{item.label}</Text>
+              <ArrowRight size={20} color="#666" />
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+        <Button
+          title="Sign Out"
+          onPress={() => router.replace('/auth/login')}
+          variant="outline"
+          style={sheetStyles.signOutButton}
+        />
+      </ScrollView>
+    </View>
+  );
+}
+
+function DeliveryDetailsSheet({ closeSheet }: any) {
+  return (
+    <View style={sheetStyles.container}>
+      <View style={sheetStyles.header}>
+        <Text style={sheetStyles.title}>Delivery Details</Text>
+        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
+          <X size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={sheetStyles.deliveryHeader}>
+          <View style={sheetStyles.deliveryIcon}>
+            <Package size={30} color="#007AFF" />
+          </View>
+          <Text style={sheetStyles.deliveryTitle}>Document Package</Text>
+          <Text style={sheetStyles.deliveryStatus}>In Transit</Text>
+        </View>
+        
+        <View style={sheetStyles.deliveryInfo}>
+          <View style={sheetStyles.infoRow}>
+            <Text style={sheetStyles.infoLabel}>Tracking Number:</Text>
+            <Text style={sheetStyles.infoValue}>DEL123456789</Text>
+          </View>
+          
+          <View style={sheetStyles.infoRow}>
+            <Text style={sheetStyles.infoLabel}>Estimated Delivery:</Text>
+            <Text style={sheetStyles.infoValue}>Today, 4:00 PM</Text>
+          </View>
+          
+          <View style={sheetStyles.infoRow}>
+            <Text style={sheetStyles.infoLabel}>Cost:</Text>
+            <Text style={sheetStyles.infoValue}>$12.50</Text>
+          </View>
+        </View>
+        
+        <View style={sheetStyles.driverSection}>
+          <Text style={sheetStyles.sectionTitle}>Driver Information</Text>
+          <View style={sheetStyles.driverCard}>
+            <View style={sheetStyles.driverAvatar}>
+              <User size={20} color="#fff" />
+            </View>
+            <View style={sheetStyles.driverInfo}>
+              <Text style={sheetStyles.driverName}>John Driver</Text>
+              <Text style={sheetStyles.driverRating}>⭐ 4.8 (120 reviews)</Text>
+            </View>
+            <TouchableOpacity style={sheetStyles.callButton}>
+              <Phone size={20} color="#007AFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={sheetStyles.messageButton}>
+              <MessageSquare size={20} color="#007AFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <Button
+          title="Track Package"
+          onPress={() => {}}
+          variant="primary"
+          style={sheetStyles.trackButton}
+          icon={<Navigation size={20} color="#fff" />}
+        />
+      </ScrollView>
     </View>
   );
 }
@@ -223,7 +705,7 @@ const styles = StyleSheet.create({
   mapContainer: {
     position: 'absolute',
     top: -STATUSBAR_HEIGHT,
-    bottom: -80, // Extra space for curved navigation
+    bottom: 0,
     left: 0,
     right: 0,
   },
@@ -280,9 +762,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
   },
-  fullButton: {
-    width: '100%',
+  newDeliveryButton: {
+    backgroundColor: '#007AFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
     marginBottom: 16,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  newDeliveryText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
   },
   quickActionRow: {
     flexDirection: 'row',
@@ -434,5 +934,307 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginBottom: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  sheetContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: SHEET_HEIGHT,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  sheetHandle: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#ddd',
+    borderRadius: 2,
+  },
+  sheetContent: {
+    flex: 1,
+  },
+});
+
+const sheetStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+  },
+  closeBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  cancelButton: {
+    flex: 1,
+  },
+  submitButton: {
+    flex: 2,
+  },
+  trackButton: {
+    marginTop: 20,
+  },
+  trackingContainer: {
+    flex: 1,
+  },
+  trackingStatus: {
+    marginTop: 30,
+  },
+  statusStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  statusDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#ddd',
+    marginRight: 12,
+    zIndex: 1,
+  },
+  activeDot: {
+    backgroundColor: '#007AFF',
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    flex: 1,
+  },
+  statusTime: {
+    fontSize: 12,
+    color: '#666',
+  },
+  packageItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  packageIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  packageInfo: {
+    flex: 1,
+  },
+  packageTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  packageStatus: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  packageCost: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+  },
+  scheduleOptions: {
+    marginTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 12,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  optionPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  profileHeader: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  profileAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 14,
+    color: '#666',
+  },
+  menuSection: {
+    marginBottom: 20,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuText: {
+    fontSize: 16,
+    color: '#000',
+    marginLeft: 12,
+    flex: 1,
+  },
+  signOutButton: {
+    marginTop: 20,
+  },
+  deliveryHeader: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  deliveryIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  deliveryTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 8,
+  },
+  deliveryStatus: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  deliveryInfo: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  driverSection: {
+    marginBottom: 20,
+  },
+  driverCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+  },
+  driverAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  driverInfo: {
+    flex: 1,
+  },
+  driverName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  driverRating: {
+    fontSize: 12,
+    color: '#666',
+  },
+  callButton: {
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    marginHorizontal: 4,
+  },
+  messageButton: {
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    marginHorizontal: 4,
   },
 });
