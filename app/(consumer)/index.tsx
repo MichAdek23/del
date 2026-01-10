@@ -73,6 +73,12 @@ export default function ConsumerHome() {
 
   const openSheet = (sheetName) => {
     setActiveSheet(sheetName);
+    // Close quick actions when opening a sheet
+    Animated.spring(quickActionsAnimation, {
+      toValue: QUICK_ACTIONS_HEIGHT * 0.3,
+      useNativeDriver: true,
+    }).start();
+    // Open the sheet
     Animated.spring(sheetAnimation, {
       toValue: height - SHEET_HEIGHT,
       useNativeDriver: true,
@@ -703,7 +709,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   quickActionsToggle: {
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 20,
     alignItems: 'center',
     borderBottomWidth: 1,
@@ -1085,4 +1091,4 @@ const sheetStyles = StyleSheet.create({
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
     marginHorizontal: 4,
   },
-});
+}); 
