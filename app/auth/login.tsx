@@ -19,6 +19,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
+// Get status bar height for different platforms
+const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
+const BOTTOM_SAFE_AREA = Platform.OS === 'ios' ? 34 : 0;
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,22 +54,28 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ImageBackground
-        source={require('@/assets/onboarding1.png')}
-        style={styles.background}
-        resizeMode="cover"
-      >
-        {/* Dark Overlay - Extends into safe area */}
-        <View style={styles.overlay} />
+    <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" />
+      
+      {/* Background container that extends beyond safe area */}
+      <View style={styles.backgroundContainer}>
+        <ImageBackground
+          source={require('@/assets/onboarding1.png')}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
         
-        <StatusBar translucent backgroundColor="transparent" />
+        {/* Dark Overlay - Full screen including all safe areas */}
+        <View style={styles.overlay} />
+      </View>
 
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          {/* Header with back button - Inside safe area */}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {/* SafeAreaView only for content, not background */}
+        <SafeAreaView style={styles.safeAreaContent}>
+          {/* Header with back button */}
           <View style={styles.header}>
             <TouchableOpacity 
               style={styles.backButton}
@@ -81,6 +91,7 @@ export default function Login() {
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
           >
             {/* Welcome Section */}
             <View style={styles.welcomeSection}>
@@ -167,30 +178,37 @@ export default function Login() {
               </View>
             </View>
           </ScrollView>
-        </KeyboardAvoidingView>
-      </ImageBackground>
-    </SafeAreaView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#000',
   },
-  background: {
-    flex: 1,
+  // Background container that extends beyond safe area
+  backgroundContainer: {
+    position: 'absolute',
+    top: -STATUSBAR_HEIGHT,
+    bottom: -BOTTOM_SAFE_AREA,
+    left: 0,
+    right: 0,
+  },
+  backgroundImage: {
     width: '100%',
     height: '100%',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    // Extend into safe area on iOS
-    top: Platform.OS === 'ios' ? -50 : 0,
-    height: Platform.OS === 'ios' ? height + 50 : height,
   },
-  container: {
+  keyboardAvoid: {
+    flex: 1,
+  },
+  safeAreaContent: {
     flex: 1,
   },
   header: {
@@ -219,7 +237,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 30 : 40,
+    paddingBottom: Platform.OS === 'ios' ? BOTTOM_SAFE_AREA + 20 : 40,
   },
   welcomeSection: {
     marginTop: 10,
