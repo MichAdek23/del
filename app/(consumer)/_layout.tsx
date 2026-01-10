@@ -1,6 +1,9 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+
+const { width } = Dimensions.get('window');
 
 export default function ConsumerLayout() {
   return (
@@ -9,18 +12,36 @@ export default function ConsumerLayout() {
         tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: '#999',
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
+          marginBottom: 6,
         },
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
-          paddingVertical: 8,
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          elevation: 0,
+          position: 'absolute',
+          bottom: Platform.OS === 'ios' ? 25 : 20,
+          left: 20,
+          right: 20,
           height: 70,
+          borderRadius: 35,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          paddingVertical: 8,
         },
-        headerShown: true,
-        headerSafeAreaInset: { top: 0 },
+        headerShown: false,
+        tabBarBackground: () => (
+          <BlurView 
+            intensity={80} 
+            tint="light"
+            style={StyleSheet.absoluteFillObject}
+          >
+            <View style={styles.navBackground} />
+          </BlurView>
+        ),
       }}
     >
       <Tabs.Screen
@@ -28,22 +49,32 @@ export default function ConsumerLayout() {
         options={{
           title: 'Home',
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.activeIcon]}>
+              <MaterialCommunityIcons 
+                name="home" 
+                color={focused ? '#007AFF' : color} 
+                size={focused ? 26 : size} 
+              />
+            </View>
           ),
-          headerTitle: 'Home',
         }}
       />
 
       <Tabs.Screen
         name="new-delivery"
         options={{
-          title: 'New Delivery',
-          tabBarLabel: 'New Delivery',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="plus-circle" color={color} size={size} />
+          title: 'New',
+          tabBarLabel: 'New',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.activeIcon]}>
+              <MaterialCommunityIcons 
+                name="plus-circle" 
+                color={focused ? '#007AFF' : color} 
+                size={focused ? 26 : size} 
+              />
+            </View>
           ),
-          headerTitle: 'New Delivery',
         }}
       />
 
@@ -52,10 +83,15 @@ export default function ConsumerLayout() {
         options={{
           title: 'Active',
           tabBarLabel: 'Active',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="truck-fast" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.activeIcon]}>
+              <MaterialCommunityIcons 
+                name="truck-fast" 
+                color={focused ? '#007AFF' : color} 
+                size={focused ? 26 : size} 
+              />
+            </View>
           ),
-          headerTitle: 'Active Deliveries',
         }}
       />
 
@@ -64,10 +100,15 @@ export default function ConsumerLayout() {
         options={{
           title: 'History',
           tabBarLabel: 'History',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="history" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.activeIcon]}>
+              <MaterialCommunityIcons 
+                name="history" 
+                color={focused ? '#007AFF' : color} 
+                size={focused ? 26 : size} 
+              />
+            </View>
           ),
-          headerTitle: 'Delivery History',
         }}
       />
 
@@ -76,10 +117,15 @@ export default function ConsumerLayout() {
         options={{
           title: 'Profile',
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" color={color} size={size} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconContainer, focused && styles.activeIcon]}>
+              <MaterialCommunityIcons 
+                name="account" 
+                color={focused ? '#007AFF' : color} 
+                size={focused ? 26 : size} 
+              />
+            </View>
           ),
-          headerTitle: 'Profile',
         }}
       />
     </Tabs>
@@ -87,6 +133,21 @@ export default function ConsumerLayout() {
 }
 
 const styles = StyleSheet.create({
+  navBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 35,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  activeIcon: {
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
