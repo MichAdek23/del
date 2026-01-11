@@ -3,7 +3,9 @@ import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity,  Switch,  Ale
 import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { ArrowLeft,} from 'lucide-react-native';
+import { Platform, StatusBar } from 'react-native';
 
+const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
 
 
 // ==================== ADD ADDRESS PAGE ====================
@@ -27,7 +29,12 @@ export default function AddAddressPage({ onBack }: any) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[ styles.header,
+              styles.safeArea,
+              Platform.OS === 'android' && styles.safeAreaAndroid,
+              Platform.OS === 'ios' && styles.safeAreaIos,
+            ]}>
+
         <TouchableOpacity onPress={onBack}>
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
@@ -601,5 +608,16 @@ const styles = StyleSheet.create({
   },
   MessageSquare: {
     // for the chat icon
+  },
+  safeArea: {
+    flex: 1,
+  },
+  safeAreaIos: {
+    paddingTop: 10,
+  },
+  safeAreaAndroid: {
+    paddingTop: StatusBar.currentHeight || 0,
+    paddingBottom: 10,
+    paddingHorizontal: 0,
   },
 });
