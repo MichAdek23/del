@@ -79,7 +79,7 @@ const OnboardingCarousel: React.FC = () => {
 
   const handleSkip = () => {
     // Navigate to consumer signup screen
-    router.push('/auth/consumer-signup');
+    router.push('/auth/signup');
   };
 
   const isLastSlide = currentSlide === slides.length - 1;
