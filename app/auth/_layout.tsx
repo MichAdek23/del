@@ -9,10 +9,6 @@ export default function AuthLayout() {
     >
       <Stack.Screen name="login" />
       <Stack.Screen name="signup" />
-      <Stack.Screen name="role-selection" />
-      <Stack.Screen name="vendor-signup" />
-      <Stack.Screen name="signup" />
-      <Stack.Screen name="rider-signup" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="otp-verification" />
       <Stack.Screen name="reset-password" />
