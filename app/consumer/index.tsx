@@ -840,6 +840,67 @@ const styles = StyleSheet.create({
   },
   quickActionsToggle: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    minHeight: MINIMIZED_HEIGHT,
+  },
+  toggleHandle: {
+    marginRight: 8,
+  },
+  toggleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#ddd',
+    borderRadius: 2,
+  },
+  toggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    textAlign: 'center',
+  },
+  chevron: {
+    marginLeft: 8,
+  },
+  quickActionsContent: {
+    flex: 1,
+  },
+  quickActionsScrollContent: {
+    flexGrow: 1,
+  },
+  quickActions: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  newDeliveryButton: {
+    backgroundColor: '#007AFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  newDeliveryText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  quickActionRow: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
     marginHorizontal: -5,
   },
@@ -877,8 +938,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
-    height: SHEET_HEIGHT,
+    top: 0, // Changed from bottom: 0 to top: 0
+    height: SHEET_HALF_HEIGHT, // Default height
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -890,14 +951,22 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   sheetHandle: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
+    position: 'relative',
   },
   handleBar: {
     width: 40,
     height: 4,
     backgroundColor: '#ddd',
     borderRadius: 2,
+  },
+  fullScreenToggle: {
+    position: 'absolute',
+    right: 20,
+    padding: 8,
   },
   sheetContent: {
     flex: 1,
@@ -908,6 +977,18 @@ const sheetStyles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+  },
+  fullScreenContainer: {
+    paddingTop: 10,
+  },
+  fullScreenScroll: {
+    paddingBottom: 30,
+  },
+  fullScreenContent: {
+    flex: 1,
+  },
+  fullScreenTitle: {
+    fontSize: 28,
   },
   header: {
     flexDirection: 'row',
