@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, Text} from 'react-native';
 import { colors } from '@/constants';
-function DetailRow({ label, value }: { label: string; value: string }) {
+
+export function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
