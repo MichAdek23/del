@@ -666,6 +666,39 @@ function ScheduleSheet({ closeSheet, isFullScreen }: any) {
 }
 
 function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
+  const menuItems = [
+    { 
+      icon: <CreditCard size={20} color="#007AFF" />, 
+      label: 'Payment Methods',
+      route: '/others/payment-methods'
+    },
+    { 
+      icon: <MapPin size={20} color="#007AFF" />, 
+      label: 'Saved Addresses',
+      route: '/others/saved-addresses'
+    },
+    { 
+      icon: <MessageSquare size={20} color="#007AFF" />, 
+      label: 'Messages',
+      route: '/others/messages'
+    },
+    { 
+      icon: <Settings size={20} color="#007AFF" />, 
+      label: 'Settings',
+      route: '/others/settings'
+    },
+    { 
+      icon: <Star size={20} color="#007AFF" />, 
+      label: 'Rate Us',
+      route: '/others/profile-edit'
+    },
+  ];
+
+  const handleMenuPress = (route: string) => {
+    closeSheet();
+    router.push(route);
+  };
+
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
       <View style={sheetStyles.header}>
@@ -690,27 +723,18 @@ function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
         </View>
         
         <View style={sheetStyles.menuSection}>
-          {[
-            { icon: <CreditCard size={20} color="#007AFF" />, label: 'Payment Methods' },
-            { icon: <MapPin size={20} color="#007AFF" />, label: 'Saved Addresses' },
-            { icon: <MessageSquare size={20} color="#007AFF" />, label: 'Messages' },
-            { icon: <Settings size={20} color="#007AFF" />, label: 'Settings' },
-            { icon: <Star size={20} color="#007AFF" />, label: 'Rate Us' },
-          ].map((item, index) => (
-            <TouchableOpacity key={index} style={sheetStyles.menuItem}>
+          {menuItems.map((item, index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={sheetStyles.menuItem}
+              onPress={() => handleMenuPress(item.route)}
+            >
               {item.icon}
               <Text style={sheetStyles.menuText}>{item.label}</Text>
               <ArrowRight size={20} color="#666" />
             </TouchableOpacity>
           ))}
         </View>
-        
-        <Button
-          title="Sign Out"
-          onPress={() => router.replace('/auth/login')}
-          variant="outline"
-          style={sheetStyles.signOutButton}
-        />
       </ScrollView>
     </View>
   );
