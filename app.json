@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "deliva",
-    "slug": "deliva-gzru9xtgxukaoapozov7g",
+    "slug": "bolt-expo-nativewind",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -34,13 +34,5 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "709efa3a-a386-4cde-ac32-c9fc80323331"
-      }
-    },
-    "owner": "michadek"
-  }
-}
+    }
+  }}
