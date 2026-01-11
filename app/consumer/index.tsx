@@ -41,7 +41,6 @@ const QUICK_ACTIONS_HEIGHT = height * 0.35;
 
 export default function ConsumerHome() {
   const [user] = useState(mockConsumer);
-  const [showWelcome, setShowWelcome] = useState(true);
   const [activeSheet, setActiveSheet] = useState(null);
   const [sheetAnimation] = useState(new Animated.Value(height));
   const [panY] = useState(new Animated.Value(0));
@@ -113,13 +112,6 @@ export default function ConsumerHome() {
     (global as any).openModalSheet = handler;
   }, []);
 
-  const handleCloseWelcome = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setShowWelcome(false));
-  };
 
   const renderSheetContent = () => {
     switch (activeSheet) {
@@ -159,17 +151,6 @@ export default function ConsumerHome() {
         Platform.OS === 'android' && styles.safeAreaAndroid,
         Platform.OS === 'ios' && styles.safeAreaIos,
       ]}>
-        {showWelcome && (
-          <Animated.View style={[styles.welcomeCard, { opacity: fadeAnim }]}>
-            <View style={styles.welcomeContent}>
-              <Text style={styles.welcomeTitle}>Hello, {user.firstName}!</Text>
-              <Text style={styles.welcomeSubtitle}>What would you like to do?</Text>
-            </View>
-            <TouchableOpacity onPress={handleCloseWelcome} style={styles.closeButton}>
-              <X size={20} color="#666" />
-            </TouchableOpacity>
-          </Animated.View>
-        )}
 
         <ScrollView 
           style={styles.scrollView}
@@ -662,35 +643,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingHorizontal: 0,
   },
-  welcomeCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  welcomeContent: {
-    flex: 1,
-  },
-  welcomeTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 4,
-  },
-  welcomeSubtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  closeButton: {
+  Button: {
     padding: 8,
     borderRadius: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
