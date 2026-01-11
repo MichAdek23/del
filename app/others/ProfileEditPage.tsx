@@ -37,7 +37,7 @@ import {
 } from 'lucide-react-native';
 
 // ==================== PROFILE EDIT PAGE ====================
-export function ProfileEditPage() {
+export default function ProfileEditPage() {
   const [formData, setFormData] = useState({
     firstName: 'John',
     lastName: 'Doe',

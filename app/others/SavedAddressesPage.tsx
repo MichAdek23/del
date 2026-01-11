@@ -37,7 +37,7 @@ import {
 } from 'lucide-react-native';
 
 // ==================== SAVED ADDRESSES PAGE ====================
-export function SavedAddressesPage() {
+export default function SavedAddressesPage() {
   const [addresses, setAddresses] = useState([
     {
       id: '1',
@@ -125,6 +125,9 @@ export function SavedAddressesPage() {
     </View>
   );
 }
+
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -629,5 +632,3 @@ const styles = StyleSheet.create({
     // for the chat icon
   },
 });
-
-export default SavedAddressesPage;

@@ -3,7 +3,7 @@ import {  StyleSheet , View , Text, TouchableOpacity , FlatList} from 'react-nat
 import { Header} from '@/components';
 import { colors } from '@/constants';
 
-export function MessagesPage() {
+export default function MessagesPage() {
   const [messages, setMessages] = useState([
     {
       id: '1',
@@ -581,5 +581,3 @@ const styles = StyleSheet.create({
     // for the chat icon
   },
 });
-
-export default MessagesPage;

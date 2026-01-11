@@ -1,24 +1,19 @@
+
+
+
+
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  TextInput,
-  Alert,
-  FlatList,
-} from 'react-native';
-import { Card, Header, Button, Input } from '@/components';
+import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity,} from 'react-native';
+import { Card } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import { Star, Phone, Mail, User, ArrowLeft, X, Plus, Trash2, Check, CreditCard, DollarSign,} from 'lucide-react-native';
-
+import { Star, Phone, ArrowLeft} from 'lucide-react-native';
 import {DetailRow} from '@/components/DetailRow';
 
+
+
 // ==================== DRIVER DETAILS PAGE ====================
-export function DriverDetailsPage() {
+export default function DriverDetailsPage() {
   const [driver] = useState({
     id: 'DRV001',
     name: 'John Smith',
@@ -607,5 +602,3 @@ const styles = StyleSheet.create({
     // for the chat icon
   },
 });
-
-export default DriverDetailsPage;

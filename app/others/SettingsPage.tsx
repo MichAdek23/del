@@ -37,7 +37,7 @@ import {
 } from 'lucide-react-native';
 
 // ==================== SETTINGS PAGE ====================
-export function SettingsPage() {
+export default function SettingsPage() {
   const [notifications, setNotifications] = useState({
     delivery: true,
     promotions: false,
@@ -695,4 +695,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SettingsPage;

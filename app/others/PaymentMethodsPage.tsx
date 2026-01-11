@@ -37,7 +37,7 @@ import {
 } from 'lucide-react-native';
 
 // ==================== PAYMENT METHODS PAGE ====================
-export function PaymentMethodsPage() {
+export default function PaymentMethodsPage() {
   const [paymentMethods, setPaymentMethods] = useState([
     {
       id: '1',
@@ -635,5 +635,3 @@ const styles = StyleSheet.create({
     // for the chat icon
   },
 });
-
-export default PaymentMethodsPage;

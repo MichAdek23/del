@@ -1,42 +1,12 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  TextInput,
-  Alert,
-  FlatList,
-} from 'react-native';
-import { Card, Header, Button, Input } from '@/components';
+import { StyleSheet,  View,  Text,  TouchableOpacity,  TextInput,  FlatList,} from 'react-native';
 import { colors } from '@/constants';
-import { router } from 'expo-router';
-import {
-  ChevronRight,
-  Bell,
-  Lock,
-  Globe,
-  HelpCircle,
-  LogOut,
-  Edit2,
-  Star,
-  MapPin,
-  Clock,
-  Phone,
-  Mail,
-  User,
-  ArrowLeft,
-  X,
-  Plus,
-  Trash2,
-  Check,
-  CreditCard,
-  DollarSign,
-} from 'lucide-react-native';
+import { ArrowLeft,} from 'lucide-react-native';
 
-function ChatDetailPage({ chatId, onBack }: any) {
+
+
+
+export default function ChatDetailPage({ chatId, onBack }: any) {
   const [messages, setMessages] = useState([
     { id: '1', text: 'Hi, I am on the way!', sender: 'driver', time: '2:30 PM' },
     { id: '2', text: 'Thank you!', sender: 'user', time: '2:31 PM' },
@@ -633,4 +603,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChatDetailPage;
