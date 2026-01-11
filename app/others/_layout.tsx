@@ -14,7 +14,7 @@ export default function OthersLayout() {
       <Stack.Screen name="messages" />
       <Stack.Screen name="payment-methods" />
       <Stack.Screen name="profile-edit" />
-      <Stack.Screen name="saved-addresses  " />
+      <Stack.Screen name="saved-addresses" />
       <Stack.Screen name="settings" />
     </Stack>
   );

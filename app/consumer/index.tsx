@@ -14,7 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Card, Input } from '@/components';
 import { colors } from '@/constants';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { 
   Plus, 
   MapPin, 
@@ -669,34 +669,29 @@ function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
     { 
       icon: <CreditCard size={20} color="#007AFF" />, 
       label: 'Payment Methods',
-      route: '/others/payment-methods'
+      href: '/others/payment-methods'
     },
     { 
       icon: <MapPin size={20} color="#007AFF" />, 
       label: 'Saved Addresses',
-      route: '/others/saved-addresses'
+      href: '/others/saved-addresses'
     },
     { 
       icon: <MessageSquare size={20} color="#007AFF" />, 
       label: 'Messages',
-      route: '/others/messages'
+      href: '/others/messages'
     },
     { 
       icon: <Settings size={20} color="#007AFF" />, 
       label: 'Settings',
-      route: '/others/settings'
+      href: '/others/settings'
     },
     { 
       icon: <Star size={20} color="#007AFF" />, 
       label: 'Rate Us',
-      route: '/others/profile-edit'
+      href: '/others/profile-edit'
     },
   ];
-
-  const handleMenuPress = (route: string) => {
-    closeSheet();
-    router.push(route);
-  };
 
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
@@ -723,17 +718,34 @@ function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
         
         <View style={sheetStyles.menuSection}>
           {menuItems.map((item, index) => (
-            <TouchableOpacity 
+            <Link 
               key={index} 
-              style={sheetStyles.menuItem}
-              onPress={() => handleMenuPress(item.route)}
+              href={item.href}
+              asChild
             >
-              {item.icon}
-              <Text style={sheetStyles.menuText}>{item.label}</Text>
-              <ArrowRight size={20} color="#666" />
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={sheetStyles.menuItem}
+                onPress={closeSheet}
+              >
+                {item.icon}
+                <Text style={sheetStyles.menuText}>{item.label}</Text>
+                <ArrowRight size={20} color="#666" />
+              </TouchableOpacity>
+            </Link>
           ))}
         </View>
+        
+        <Link href="/auth/login" asChild>
+          <Button
+            title="Sign Out"
+            onPress={() => {
+              closeSheet();
+              router.replace('/auth/login');
+            }}
+            variant="outline"
+            style={sheetStyles.signOutButton}
+          />
+        </Link>
       </ScrollView>
     </View>
   );
