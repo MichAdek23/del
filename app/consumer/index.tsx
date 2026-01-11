@@ -376,7 +376,6 @@ export default function ConsumerHome() {
       {activeSheet && (
         <Animated.View 
           style={[
-            styles.overlay,
             {
               opacity: sheetAnimation.interpolate({
                 inputRange: [height - SHEET_FULL_HEIGHT, height - SHEET_HALF_HEIGHT],
