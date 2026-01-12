@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, Platform, StatusBar, Animated, PanResponder, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import MapView, { Marker } from 'react-native-maps';
 import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
@@ -109,7 +109,21 @@ export default function ConsumerHome() {
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
       <View style={styles.mapContainer}>
-        <LinearGradient colors={['#1a1a2e', '#0f3460', '#16213e']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.map} />
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: 6.5244,
+            longitude: 3.3792,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        >
+          <Marker
+            coordinate={{ latitude: 6.5244, longitude: 3.3792 }}
+            title="Current Location"
+            description="You are here"
+          />
+        </MapView>
         <View style={styles.mapOverlay} />
       </View>
 
@@ -123,7 +137,7 @@ export default function ConsumerHome() {
         <TouchableOpacity style={styles.quickActionsToggle} onPress={() => isQuickActionsOpen ? closeQuickActions() : openQuickActions()} activeOpacity={0.8} {...quickActionsPanResponder.panHandlers}>
           <View style={styles.toggleBar} />
           <Text style={styles.toggleText}>Quick Actions</Text>
-
+          {isQuickActionsOpen ? <ChevronDown size={20} color="#666" /> : <ChevronUp size={20} color="#666" />}
         </TouchableOpacity>
 
         <Animated.View style={[styles.quickActionsContent, { opacity: quickActionsHeight.interpolate({ inputRange: [MINIMIZED_HEIGHT, MINIMIZED_HEIGHT + 10], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
@@ -363,119 +377,51 @@ function ScheduleSheet({ closeSheet, isFullScreen }: any) {
 }
 
 function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
-  // Navigation handler for modal routes
-  const handleNavigation = (routeName: string) => {
-    closeSheet(); // Close the sheet first
-    
-    // Navigate to the modal screen
-    switch(routeName) {
-      case 'Payment Methods':
-        router.push('/others/payment-methods');
-        break;
-      case 'Saved Addresses':
-        router.push('/others/saved-addresses');
-        break;
-      case 'Messages':
-        router.push('/others/messages');
-        break;
-      case 'Settings':
-        router.push('/others/settings');
-        break;
-      default:
-        router.push('/others/settings');
-    }
-  };
+  const [activeSubmenu, setActiveSubmenu] = useState(null);
+
+  if (activeSubmenu) {
+    return (
+      <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
+        <View style={sheetStyles.header}>
+          <TouchableOpacity onPress={() => setActiveSubmenu(null)}>
+            <Text style={{ color: '#007AFF', fontSize: 16, fontWeight: '600' }}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>{activeSubmenu}</Text>
+          <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
+        </View>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ paddingHorizontal: 20 }}>
+          <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+            <Text style={{ fontSize: 16, color: '#666' }}>Content for {activeSubmenu}</Text>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
       <View style={sheetStyles.header}>
         <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>My Profile</Text>
-        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
-          <X size={24} color="#666" />
-        </TouchableOpacity>
+        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
       </View>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={sheetStyles.profileHeader}>
-          <View style={sheetStyles.profileAvatar}>
-            <Text style={sheetStyles.avatarText}>
-              {user.firstName.charAt(0)}{user.lastName.charAt(0)}
-            </Text>
-          </View>
-          <Text style={sheetStyles.profileName}>
-            {user.firstName} {user.lastName}
-          </Text>
+          <View style={sheetStyles.profileAvatar}><Text style={sheetStyles.avatarText}>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</Text></View>
+          <Text style={sheetStyles.profileName}>{user.firstName} {user.lastName}</Text>
           <Text style={sheetStyles.profileEmail}>{user.email}</Text>
         </View>
-        
         <View style={sheetStyles.menuSection}>
           {[
-            { 
-              label: 'Payment Methods', 
-              icon: <CreditCard size={20} color="#666" />,
-              route: 'payment-methods'
-            },
-            { 
-              label: 'Saved Addresses', 
-              icon: <MapPin size={20} color="#666" />,
-              route: 'saved-addresses'
-            },
-            { 
-              label: 'Messages', 
-              icon: <MessageSquare size={20} color="#666" />,
-              route: 'messages'
-            },
-            { 
-              label: 'Settings', 
-              icon: <Settings size={20} color="#666" />,
-              route: 'settings'
-            },
+            { label: 'Payment Methods' },
+            { label: 'Saved Addresses' },
+            { label: 'Messages' },
+            { label: 'Settings' },
           ].map((item, i) => (
-            <TouchableOpacity 
-              key={i} 
-              onPress={() => handleNavigation(item.label)} 
-              style={sheetStyles.menuItem}
-              activeOpacity={0.7}
-            >
-              <View style={sheetStyles.menuItemLeft}>
-                {item.icon}
-                <Text style={sheetStyles.menuText}>{item.label}</Text>
-              </View>
+            <TouchableOpacity key={i} onPress={() => setActiveSubmenu(item.label)} style={sheetStyles.menuItem}>
+              <Text style={sheetStyles.menuText}>{item.label}</Text>
               <ArrowRight size={20} color="#666" />
             </TouchableOpacity>
           ))}
-        </View>
-        
-        {/* Additional profile options */}
-        <View style={sheetStyles.menuSection}>
-          <TouchableOpacity 
-            style={sheetStyles.menuItem}
-            onPress={() => {
-              closeSheet();
-              router.push('/others/profile-edit');
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={sheetStyles.menuItemLeft}>
-              <User size={20} color="#666" />
-              <Text style={sheetStyles.menuText}>Edit Profile</Text>
-            </View>
-            <ArrowRight size={20} color="#666" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={sheetStyles.menuItem}
-            onPress={() => {
-              closeSheet();
-              router.push('/others/add-address');
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={sheetStyles.menuItemLeft}>
-              <MapPin size={20} color="#666" />
-              <Text style={sheetStyles.menuText}>Add New Address</Text>
-            </View>
-            <ArrowRight size={20} color="#666" />
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -573,6 +519,5 @@ const sheetStyles = StyleSheet.create({
   profileEmail: { fontSize: 14, color: '#666' },
   menuSection: { marginBottom: 20 },
   menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  menuText: { fontSize: 16, color: '#000', flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', } ,
-  menuItemLeft: {  flexDirection: 'row',  alignItems: 'center',  gap: 12,  flex: 1,  },
+  menuText: { fontSize: 16, color: '#000', flex: 1 },
 });
