@@ -3,7 +3,8 @@ import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity,  Switch,  Ale
 import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { ArrowLeft,} from 'lucide-react-native';
-import { Platform, StatusBar } from 'react-native';
+import { StatusBar } from 'react-native';
+import { router } from 'expo-router';
 
 
 
@@ -29,8 +30,7 @@ export default function AddAddressPage({ onBack }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Address</Text>
