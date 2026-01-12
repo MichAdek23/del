@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, Platform, StatusBar, Animated, PanResponder, Alert } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, Platform, StatusBar, Animated, PanResponder, Alert, FlatList } from 'react-native';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import { Plus, MapPin, Package, Clock, User, X, Calendar, CreditCard, MessageSquare, Settings, ArrowRight, Star, Phone, Navigation, ChevronUp, ChevronDown, Maximize2, Minimize2, Check } from 'lucide-react-native';
+import { Plus, MapPin, Package, Clock, User, X, Calendar, CreditCard, MessageSquare, Settings, ArrowRight, Star, Phone, Navigation, ChevronUp, ChevronDown, Maximize2, Minimize2, Check, Search } from 'lucide-react-native';
 import { mockConsumer, mockDeliveries } from '@/constants/mockData';
 
 const { height } = Dimensions.get('window');
@@ -12,6 +12,42 @@ const QUICK_ACTIONS_HEIGHT = height * 0.35;
 const MINIMIZED_HEIGHT = 70;
 const SHEET_HALF_HEIGHT = Platform.OS === 'ios' ? height * 0.5 : height * 0.55;
 const SHEET_FULL_HEIGHT = Platform.OS === 'ios' ? height * 0.85 : height * 0.9;
+
+// Mock location suggestions
+const LOCATION_SUGGESTIONS = {
+  'lekki': [
+    { name: 'Lekki Phase 1', lat: 6.4454, lng: 3.5860 },
+    { name: 'Lekki Phase 2', lat: 6.4289, lng: 3.5890 },
+    { name: 'Lekki Axis', lat: 6.4500, lng: 3.5950 },
+  ],
+  'ikoyi': [
+    { name: 'Ikoyi Bridge', lat: 6.4597, lng: 3.6243 },
+    { name: 'Old Ikoyi', lat: 6.4689, lng: 3.6189 },
+  ],
+  'vi': [
+    { name: 'Victoria Island', lat: 6.4341, lng: 3.4206 },
+    { name: 'VI Axis', lat: 6.4400, lng: 3.4300 },
+  ],
+};
+
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+const getLocationSuggestions = (input: string) => {
+  const key = input.toLowerCase();
+  for (const [searchKey, locations] of Object.entries(LOCATION_SUGGESTIONS)) {
+    if (searchKey.includes(key) || key.includes(searchKey)) {
+      return locations;
+    }
+  }
+  return [];
+};
 
 export default function ConsumerHome() {
   const [user] = useState(mockConsumer);
@@ -117,6 +153,10 @@ export default function ConsumerHome() {
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           }}
+          zoomEnabled={true}
+          scrollEnabled={true}
+          pitchEnabled={true}
+          rotateEnabled={true}
         >
           <Marker
             coordinate={{ latitude: 6.5244, longitude: 3.3792 }}
@@ -174,15 +214,68 @@ export default function ConsumerHome() {
 }
 
 function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
-  const [formData, setFormData] = useState({ from: '', to: '', packageType: '', description: '', weight: '', recipientName: '', recipientContact: '' });
+  const mapRef = useRef<MapView>(null);
+  const [formData, setFormData] = useState({ from: '', to: '', packageType: '', description: '', weight: '', recipientName: '', recipientContact: '', fromLat: 0, fromLng: 0, toLat: 0, toLng: 0 });
   const [deliveryCreated, setDeliveryCreated] = useState(false);
   const [trackingId, setTrackingId] = useState('');
+  const [fromSuggestions, setFromSuggestions] = useState<any[]>([]);
+  const [toSuggestions, setToSuggestions] = useState<any[]>([]);
+  const [showFromSuggestions, setShowFromSuggestions] = useState(false);
+  const [showToSuggestions, setShowToSuggestions] = useState(false);
+  const [distance, setDistance] = useState(0);
 
   const generateTrackingId = () => `DEL${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
+  const handleFromChange = (text: string) => {
+    setFormData({ ...formData, from: text });
+    const suggestions = getLocationSuggestions(text);
+    setFromSuggestions(suggestions);
+    setShowFromSuggestions(suggestions.length > 0);
+  };
+
+  const handleToChange = (text: string) => {
+    setFormData({ ...formData, to: text });
+    const suggestions = getLocationSuggestions(text);
+    setToSuggestions(suggestions);
+    setShowToSuggestions(suggestions.length > 0);
+  };
+
+  const selectFromLocation = (location: any) => {
+    setFormData({ ...formData, from: location.name, fromLat: location.lat, fromLng: location.lng });
+    setShowFromSuggestions(false);
+    setFromSuggestions([]);
+    calculateRouteDistance(location.lat, location.lng, formData.toLat, formData.toLng);
+  };
+
+  const selectToLocation = (location: any) => {
+    setFormData({ ...formData, to: location.name, toLat: location.lat, toLng: location.lng });
+    setShowToSuggestions(false);
+    setToSuggestions([]);
+    calculateRouteDistance(formData.fromLat, formData.fromLng, location.lat, location.lng);
+  };
+
+  const calculateRouteDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    if (lat1 && lng1 && lat2 && lng2) {
+      const dist = calculateDistance(lat1, lng1, lat2, lng2);
+      setDistance(dist);
+      animateToRoute(lat1, lng1, lat2, lng2);
+    }
+  };
+
+  const animateToRoute = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const avgLat = (lat1 + lat2) / 2;
+    const avgLng = (lng1 + lng2) / 2;
+    mapRef.current?.animateToRegion({
+      latitude: avgLat,
+      longitude: avgLng,
+      latitudeDelta: Math.abs(lat2 - lat1) * 1.5 || 0.1,
+      longitudeDelta: Math.abs(lng2 - lng1) * 1.5 || 0.1,
+    });
+  };
+
   const handleCreateDelivery = () => {
     if (!formData.from || !formData.to || !formData.recipientName || !formData.recipientContact) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert('Error', 'Please fill in all required fields and select locations');
       return;
     }
     setTrackingId(generateTrackingId());
@@ -208,11 +301,11 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
               <Text style={sheetStyles.summaryTitle}>Delivery Summary</Text>
               <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>From:</Text><Text style={sheetStyles.summaryValue}>{formData.from}</Text></View>
               <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>To:</Text><Text style={sheetStyles.summaryValue}>{formData.to}</Text></View>
+              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>Distance:</Text><Text style={sheetStyles.summaryValue}>{distance.toFixed(2)} km</Text></View>
               <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>Recipient:</Text><Text style={sheetStyles.summaryValue}>{formData.recipientName}</Text></View>
-              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>Contact:</Text><Text style={sheetStyles.summaryValue}>{formData.recipientContact}</Text></View>
             </View>
             <Button title="Track Delivery" onPress={() => { closeSheet(); (global as any).openModalSheet('tracking'); }} variant="primary" style={sheetStyles.submitButton} />
-            <Button title="Done" onPress={closeSheet} variant="outline" style={sheetStyles.submitButton} />
+            <Button title="Done" onPress={closeSheet} style={sheetStyles.submitButton} />
           </View>
         </ScrollView>
       </View>
@@ -227,10 +320,33 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
       </View>
       <ScrollView showsVerticalScrollIndicator={false} style={isFullScreen && sheetStyles.fullScreenScroll}>
         <Text style={sheetStyles.sectionLabel}>Pickup Details</Text>
-        <Input label="Pickup Address" placeholder="Enter pickup location" value={formData.from} onChangeText={(t) => setFormData({ ...formData, from: t })} icon={<MapPin size={20} color="#666" />} />
+        <View style={sheetStyles.inputContainer}>
+          <Input label="Pickup Address" placeholder="Enter pickup location" value={formData.from} onChangeText={handleFromChange} icon={<MapPin size={20} color="#666" />} />
+          {showFromSuggestions && <FlatList data={fromSuggestions} keyExtractor={(_, i) => i.toString()} scrollEnabled={false} renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => selectFromLocation(item)} style={sheetStyles.suggestionItem}>
+              <MapPin size={16} color="#007AFF" />
+              <Text style={sheetStyles.suggestionText}>{item.name}</Text>
+            </TouchableOpacity>
+          )} />}
+        </View>
         
         <Text style={sheetStyles.sectionLabel}>Delivery Details</Text>
-        <Input label="Delivery Address" placeholder="Enter delivery location" value={formData.to} onChangeText={(t) => setFormData({ ...formData, to: t })} icon={<MapPin size={20} color="#666" />} />
+        <View style={sheetStyles.inputContainer}>
+          <Input label="Delivery Address" placeholder="Enter delivery location" value={formData.to} onChangeText={handleToChange} icon={<MapPin size={20} color="#666" />} />
+          {showToSuggestions && <FlatList data={toSuggestions} keyExtractor={(_, i) => i.toString()} scrollEnabled={false} renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => selectToLocation(item)} style={sheetStyles.suggestionItem}>
+              <MapPin size={16} color="#007AFF" />
+              <Text style={sheetStyles.suggestionText}>{item.name}</Text>
+            </TouchableOpacity>
+          )} />}
+        </View>
+
+        {distance > 0 && (
+          <View style={sheetStyles.distanceCard}>
+            <Text style={sheetStyles.distanceLabel}>Estimated Distance</Text>
+            <Text style={sheetStyles.distanceValue}>{distance.toFixed(2)} km</Text>
+          </View>
+        )}
         
         <View style={sheetStyles.row}>
           <View style={sheetStyles.halfInput}>
@@ -256,6 +372,7 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
 }
 
 function TrackingSheet({ closeSheet, isFullScreen }: any) {
+  const mapRef = useRef<MapView>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingData, setTrackingData] = useState<any>(null);
 
@@ -264,10 +381,15 @@ function TrackingSheet({ closeSheet, isFullScreen }: any) {
       setTrackingData({
         trackingId: trackingNumber,
         pickupAddress: '123 Main St, Lagos',
+        pickupLat: 6.5244,
+        pickupLng: 3.3792,
         deliveryAddress: '456 Oak Ave, Lagos',
+        deliveryLat: 6.4454,
+        deliveryLng: 3.5860,
         recipientName: 'Jane Doe',
         recipientContact: '+234 801 987 6543',
         estimatedDelivery: 'Today, 4:00 PM',
+        distance: calculateDistance(6.5244, 3.3792, 6.4454, 3.5860),
         progress: [
           { step: 'Package Picked Up', time: '10:30 AM', completed: true },
           { step: 'In Transit', time: '11:45 AM', completed: true },
@@ -377,26 +499,16 @@ function ScheduleSheet({ closeSheet, isFullScreen }: any) {
 }
 
 function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
-  const [activeSubmenu, setActiveSubmenu] = useState(null);
-
-  if (activeSubmenu) {
-    return (
-      <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
-        <View style={sheetStyles.header}>
-          <TouchableOpacity onPress={() => setActiveSubmenu(null)}>
-            <Text style={{ color: '#007AFF', fontSize: 16, fontWeight: '600' }}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>{activeSubmenu}</Text>
-          <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
-        </View>
-        <ScrollView showsVerticalScrollIndicator={false} style={{ paddingHorizontal: 20 }}>
-          <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-            <Text style={{ fontSize: 16, color: '#666' }}>Content for {activeSubmenu}</Text>
-          </View>
-        </ScrollView>
-      </View>
-    );
-  }
+  const handleNavigation = (routeName: string) => {
+    closeSheet();
+    switch(routeName) {
+      case 'Payment Methods': router.push('/others/payment-methods'); break;
+      case 'Saved Addresses': router.push('/others/saved-addresses'); break;
+      case 'Messages': router.push('/others/messages'); break;
+      case 'Settings': router.push('/others/settings'); break;
+      default: router.push('/others/settings');
+    }
+  };
 
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
@@ -412,13 +524,16 @@ function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
         </View>
         <View style={sheetStyles.menuSection}>
           {[
-            { label: 'Payment Methods' },
-            { label: 'Saved Addresses' },
-            { label: 'Messages' },
-            { label: 'Settings' },
+            { label: 'Payment Methods', icon: <CreditCard size={20} color="#666" /> },
+            { label: 'Saved Addresses', icon: <MapPin size={20} color="#666" /> },
+            { label: 'Messages', icon: <MessageSquare size={20} color="#666" /> },
+            { label: 'Settings', icon: <Settings size={20} color="#666" /> },
           ].map((item, i) => (
-            <TouchableOpacity key={i} onPress={() => setActiveSubmenu(item.label)} style={sheetStyles.menuItem}>
-              <Text style={sheetStyles.menuText}>{item.label}</Text>
+            <TouchableOpacity key={i} onPress={() => handleNavigation(item.label)} style={sheetStyles.menuItem} activeOpacity={0.7}>
+              <View style={sheetStyles.menuItemLeft}>
+                {item.icon}
+                <Text style={sheetStyles.menuText}>{item.label}</Text>
+              </View>
               <ArrowRight size={20} color="#666" />
             </TouchableOpacity>
           ))}
@@ -482,7 +597,7 @@ const sheetStyles = StyleSheet.create({
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   summaryLabel: { fontSize: 13, color: '#666', fontWeight: '500' },
   summaryValue: { fontSize: 13, fontWeight: '600', color: '#000', flex: 1, textAlign: 'right', paddingLeft: 10 },
-  trackingContainer: { flex: 1 },
+  trackingContainer: { flex: 1, padding: 20 },
   trackButton: { marginTop: 20 },
   trackingIdCard: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 16, marginBottom: 20, alignItems: 'center' },
   trackingIdLabel: { fontSize: 12, color: '#666', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -519,5 +634,12 @@ const sheetStyles = StyleSheet.create({
   profileEmail: { fontSize: 14, color: '#666' },
   menuSection: { marginBottom: 20 },
   menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  menuText: { fontSize: 16, color: '#000', flex: 1 },
+  menuText: { fontSize: 16, color: '#000', flex: 1, marginLeft: 12 },
+  menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  inputContainer: { marginBottom: 16 },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#f5f5f5', borderRadius: 8, marginTop: 8, gap: 8 },
+  suggestionText: { fontSize: 14, color: '#000', marginLeft: 8 },
+  distanceCard: { backgroundColor: '#f0f8ff', borderRadius: 12, padding: 16, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#007AFF' },
+  distanceLabel: { fontSize: 12, color: '#666', marginBottom: 4, fontWeight: '600' },
+  distanceValue: { fontSize: 20, fontWeight: '700', color: '#007AFF' },
 });
