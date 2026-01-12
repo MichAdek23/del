@@ -1,49 +1,72 @@
 import React, { useState } from 'react';
-import { StyleSheet,  View,  Text,  TouchableOpacity,  TextInput,  FlatList,} from 'react-native';
+import { StyleSheet,  View,  Text,  TouchableOpacity,  TextInput,  FlatList, SafeAreaView, KeyboardAvoidingView, Platform,} from 'react-native';
 import { colors } from '@/constants';
-import { ArrowLeft,} from 'lucide-react-native';
+import { ArrowLeft, Send, Phone} from 'lucide-react-native';
 
 
 
-
-export default function ChatDetailPage({ chatId, onBack }: any) {
-  const [messages, setMessages] = useState([
-    { id: '1', text: 'Hi, I am on the way!', sender: 'driver', time: '2:30 PM' },
-    { id: '2', text: 'Thank you!', sender: 'user', time: '2:31 PM' },
-    { id: '3', text: 'I am 5 minutes away', sender: 'driver', time: '2:40 PM' },
+export default function ChatDetailPage({ 
+  chatId, 
+  driverName, 
+  driverAvatar,
+  onBack 
+}: any) {
+  const [chatMessages, setChatMessages] = useState([
+    { 
+      id: '1', 
+      text: 'Hi, I am on the way!', 
+      sender: 'driver', 
+      time: '2:30 PM' 
+    },
+    { 
+      id: '2', 
+      text: 'Thank you!', 
+      sender: 'user', 
+      time: '2:31 PM' 
+    },
+    { 
+      id: '3', 
+      text: 'I am 5 minutes away', 
+      sender: 'driver', 
+      time: '2:40 PM' 
+    },
   ]);
   const [messageText, setMessageText] = useState('');
 
   const handleSendMessage = () => {
     if (messageText.trim()) {
-      setMessages([
-        ...messages,
-        {
-          id: String(messages.length + 1),
-          text: messageText,
-          sender: 'user',
-          time: new Date().toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        },
-      ]);
+      const newMessage = {
+        id: String(chatMessages.length + 1),
+        text: messageText,
+        sender: 'user',
+        time: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      };
+      setChatMessages([...chatMessages, newMessage]);
       setMessageText('');
     }
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.chatContainer}>
+      {/* Chat Header */}
       <View style={styles.chatHeader}>
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>John Smith</Text>
-        <Phone size={24} color={colors.primary} />
+        <View style={styles.chatHeaderTitle}>
+          <Text style={styles.headerTitle}>{driverName}</Text>
+        </View>
+        <TouchableOpacity style={styles.phoneButton}>
+          <Phone size={24} color={colors.primary} />
+        </TouchableOpacity>
       </View>
 
+      {/* Messages List */}
       <FlatList
-        data={messages}
+        data={chatMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View
@@ -80,239 +103,50 @@ export default function ChatDetailPage({ chatId, onBack }: any) {
         scrollEnabled={true}
       />
 
-      <View style={styles.messageInputContainer}>
-        <TextInput
-          style={styles.messageInput}
-          placeholder="Type a message..."
-          value={messageText}
-          onChangeText={setMessageText}
-          multiline
-        />
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={handleSendMessage}
-        >
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      {/* Message Input */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.messageInputContainer}>
+          <TextInput
+            style={styles.messageInput}
+            placeholder="Type a message..."
+            placeholderTextColor="rgba(0, 0, 0, 0.5)"
+            value={messageText}
+            onChangeText={setMessageText}
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              !messageText.trim() && styles.sendButtonDisabled,
+            ]}
+            onPress={handleSendMessage}
+            disabled={!messageText.trim()}
+          >
+            <Send 
+              size={20} 
+              color={messageText.trim() ? '#fff' : '#ccc'} 
+            />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
+
+
 const styles = StyleSheet.create({
+  // Messages Page Styles
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    marginTop: 20,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  settingCard: {
-    marginBottom: 16,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  settingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  settingSubtext: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginHorizontal: 16,
-  },
-  signOutButton: {
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  avatarSection: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  largeAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatarInitials: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 8,
-  },
-  uploadButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  submitButton: {
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  driverHeaderSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  driverAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  driverAvatarText: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  driverName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  ratingText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  reviewsText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-  },
-  phoneButton: {
-    backgroundColor: colors.primary,
-  },
-  messageButton: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 16,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  detailsCard: {
-    marginBottom: 24,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
+    backgroundColor: colors.background || '#f5f5f5',
   },
   messagesList: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   messageItem: {
     flexDirection: 'row',
@@ -325,7 +159,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary || '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -346,22 +180,22 @@ const styles = StyleSheet.create({
   messageName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.text || '#000',
   },
   messageTime: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.textSecondary || '#999',
   },
   messagePreview: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textSecondary || '#999',
   },
   unreadMessage: {
-    color: colors.text,
+    color: colors.text || '#000',
     fontWeight: '600',
   },
   unreadBadge: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary || '#007AFF',
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -372,6 +206,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text || '#000',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary || '#999',
+  },
+
+  // Chat Detail Page Styles
+  chatContainer: {
+    flex: 1,
+    backgroundColor: colors.background || '#f5f5f5',
+  },
   chatHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -381,6 +237,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  chatHeaderTitle: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text || '#000',
+  },
+  phoneButton: {
+    padding: 8,
   },
   chatMessagesList: {
     flexGrow: 1,
@@ -397,7 +269,7 @@ const styles = StyleSheet.create({
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary || '#007AFF',
   },
   driverMessage: {
     alignSelf: 'flex-start',
@@ -405,12 +277,13 @@ const styles = StyleSheet.create({
   },
   bubbleText: {
     fontSize: 14,
+    lineHeight: 18,
   },
   userBubbleText: {
     color: '#fff',
   },
   driverBubbleText: {
-    color: colors.text,
+    color: colors.text || '#000',
   },
   bubbleTime: {
     fontSize: 11,
@@ -420,7 +293,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
   },
   driverBubbleTime: {
-    color: colors.textSecondary,
+    color: colors.textSecondary || '#999',
   },
   messageInputContainer: {
     flexDirection: 'row',
@@ -439,167 +312,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 14,
-    color: colors.text,
+    color: colors.text || '#000',
     maxHeight: 100,
   },
   sendButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
+    backgroundColor: colors.primary || '#007AFF',
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  paymentCard: {
-    marginBottom: 12,
-    padding: 16,
-  },
-  paymentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  paymentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  cardIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  cardNumber: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  defaultBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
-  },
-  defaultText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  paymentFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  expiryLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  addressCard: {
-    marginBottom: 12,
-    padding: 16,
-  },
-  addressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  addressLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  addressLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  addressText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  addressActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  editAddressBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    gap: 6,
-  },
-  editAddressText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  deleteAddressBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 68, 68, 0.1)',
-    gap: 6,
-  },
-  deleteAddressText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FF4444',
-  },
-  addButton: {
-    marginBottom: 30,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  halfInput: {
-    flex: 1,
-  },
-  defaultAddressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    marginVertical: 16,
-  },
-  defaultAddressLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  MessageSquare: {
-    // for the chat icon
+  sendButtonDisabled: {
+    backgroundColor: '#ddd',
+    opacity: 0.6,
   },
 });
 
