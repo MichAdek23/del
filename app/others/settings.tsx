@@ -31,14 +31,15 @@ export default function SettingsPage() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, styles.safeArea,
-              Platform.OS === 'android' && styles.safeAreaAndroid,
-              Platform.OS === 'ios' && styles.safeAreaIos,
-            ]}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft size={24} color={colors.text} />
-        </TouchableOpacity>
-      <Header title="Settings" />
+    <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <ArrowLeft size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Add Address</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Account Section */}
         <Text style={styles.sectionTitle}>Account</Text>

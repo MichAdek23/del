@@ -52,10 +52,14 @@ export default function MessagesPage() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={() => router.back()}>
-        <ArrowLeft size={24} color={colors.text} />
-      </TouchableOpacity>
-      <Header title="Messages" />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Messages</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
       <FlatList
         data={messages}
         keyExtractor={(item) => item.id}
@@ -215,11 +219,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text || '#000',
-  },
   phoneButton: {
     padding: 8,
   },
@@ -295,5 +294,20 @@ const styles = StyleSheet.create({
   sendButtonDisabled: {
     backgroundColor: '#ddd',
     opacity: 0.6,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
   },
 });
