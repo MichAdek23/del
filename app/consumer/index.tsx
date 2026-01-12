@@ -442,67 +442,222 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
     packageType: '',
     description: '',
     weight: '',
+    recipientName: '',
+    recipientContact: '',
   });
+
+  const [deliveryCreated, setDeliveryCreated] = useState(false);
+  const [trackingId, setTrackingId] = useState('');
+
+  const generateTrackingId = () => {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    return `DEL${timestamp}${random}`;
+  };
+
+  const handleCreateDelivery = () => {
+    if (
+      !formData.from ||
+      !formData.to ||
+      !formData.recipientName ||
+      !formData.recipientContact
+    ) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    const newTrackingId = generateTrackingId();
+    setTrackingId(newTrackingId);
+    setDeliveryCreated(true);
+
+    // Here you would typically send the delivery data to your backend
+    // Example: await createDeliveryAPI(formData, newTrackingId)
+  };
+
+  if (deliveryCreated) {
+    return (
+      <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
+        <View style={sheetStyles.header}>
+          <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>
+            Delivery Created
+          </Text>
+          <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
+            <X size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={sheetStyles.successContainer}>
+            <View style={sheetStyles.checkmarkCircle}>
+              <Check size={40} color="#fff" />
+            </View>
+            <Text style={sheetStyles.successTitle}>Delivery Request Sent!</Text>
+            <Text style={sheetStyles.successSubtitle}>
+              Your delivery request has been created and sent to available drivers.
+            </Text>
+
+            <View style={sheetStyles.trackingCard}>
+              <Text style={sheetStyles.trackingLabel}>Tracking Number</Text>
+              <Text style={sheetStyles.trackingNumber}>{trackingId}</Text>
+              <TouchableOpacity style={sheetStyles.copyButton}>
+                <Text style={sheetStyles.copyButtonText}>Copy</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={sheetStyles.summaryCard}>
+              <Text style={sheetStyles.summaryTitle}>Delivery Summary</Text>
+
+              <View style={sheetStyles.summaryRow}>
+                <Text style={sheetStyles.summaryLabel}>From:</Text>
+                <Text style={sheetStyles.summaryValue}>{formData.from}</Text>
+              </View>
+
+              <View style={sheetStyles.summaryRow}>
+                <Text style={sheetStyles.summaryLabel}>To:</Text>
+                <Text style={sheetStyles.summaryValue}>{formData.to}</Text>
+              </View>
+
+              <View style={sheetStyles.summaryRow}>
+                <Text style={sheetStyles.summaryLabel}>Recipient:</Text>
+                <Text style={sheetStyles.summaryValue}>
+                  {formData.recipientName}
+                </Text>
+              </View>
+
+              <View style={sheetStyles.summaryRow}>
+                <Text style={sheetStyles.summaryLabel}>Contact:</Text>
+                <Text style={sheetStyles.summaryValue}>
+                  {formData.recipientContact}
+                </Text>
+              </View>
+
+              <View style={sheetStyles.summaryRow}>
+                <Text style={sheetStyles.summaryLabel}>Package Type:</Text>
+                <Text style={sheetStyles.summaryValue}>
+                  {formData.packageType}
+                </Text>
+              </View>
+            </View>
+
+            <View style={sheetStyles.infoBox}>
+              <Text style={sheetStyles.infoText}>
+                💡 A driver will accept your delivery soon. Once accepted, you'll
+                receive the driver's details and can track your delivery in real-time.
+              </Text>
+            </View>
+
+            <Button
+              title="Track Delivery"
+              onPress={() => {
+                closeSheet();
+                // Navigate to tracking sheet or open tracking modal
+                (global as any).openModalSheet('tracking');
+              }}
+              variant="primary"
+              style={sheetStyles.submitButton}
+            />
+
+            <Button
+              title="Done"
+              onPress={closeSheet}
+              variant="outline"
+              style={sheetStyles.submitButton}
+            />
+          </ScrollView>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
       <View style={sheetStyles.header}>
-        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>New Delivery</Text>
+        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>
+          New Delivery
+        </Text>
         <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
           <X size={24} color="#666" />
         </TouchableOpacity>
       </View>
-      
-      <ScrollView 
+
+      <ScrollView
         showsVerticalScrollIndicator={false}
         style={isFullScreen && sheetStyles.fullScreenScroll}
       >
+        <Text style={sheetStyles.sectionLabel}>Pickup Details</Text>
         <Input
           label="Pickup Address"
           placeholder="Enter pickup location"
           value={formData.from}
-          onChangeText={(text) => setFormData({...formData, from: text})}
+          onChangeText={(text) => setFormData({ ...formData, from: text })}
           icon={<MapPin size={20} color="#666" />}
-          
         />
-        
+
+        <Text style={sheetStyles.sectionLabel}>Delivery Details</Text>
         <Input
           label="Delivery Address"
           placeholder="Enter delivery location"
           value={formData.to}
-          onChangeText={(text) => setFormData({...formData, to: text})}
+          onChangeText={(text) => setFormData({ ...formData, to: text })}
           icon={<MapPin size={20} color="#666" />}
-          
         />
-        
+
+        <View style={sheetStyles.row}>
+          <View style={sheetStyles.halfInput}>
+            <Input
+              label="Recipient Name"
+              placeholder="Full name"
+              value={formData.recipientName}
+              onChangeText={(text) =>
+                setFormData({ ...formData, recipientName: text })
+              }
+              icon={<User size={20} color="#666" />}
+            />
+          </View>
+          <View style={sheetStyles.halfInput}>
+            <Input
+              label="Contact Number"
+              placeholder="Phone number"
+              value={formData.recipientContact}
+              onChangeText={(text) =>
+                setFormData({ ...formData, recipientContact: text })
+              }
+              icon={<Phone size={20} color="#666" />}
+              keyboardType="phone-pad"
+            />
+          </View>
+        </View>
+
+        <Text style={sheetStyles.sectionLabel}>Package Information</Text>
         <Input
           label="Package Type"
           placeholder="e.g., Document, Parcel, Food"
           value={formData.packageType}
-          onChangeText={(text) => setFormData({...formData, packageType: text})}
+          onChangeText={(text) =>
+            setFormData({ ...formData, packageType: text })
+          }
           icon={<Package size={20} color="#666" />}
-          
         />
-        
+
         <Input
           label="Description"
           placeholder="Describe your package"
           value={formData.description}
-          onChangeText={(text) => setFormData({...formData, description: text})}
+          onChangeText={(text) =>
+            setFormData({ ...formData, description: text })
+          }
           multiline
           numberOfLines={3}
-          
         />
-        
+
         <Input
           label="Weight (kg)"
           placeholder="Approximate weight"
           value={formData.weight}
-          onChangeText={(text) => setFormData({...formData, weight: text})}
+          onChangeText={(text) => setFormData({ ...formData, weight: text })}
           keyboardType="numeric"
-          
         />
-        
+
         <View style={sheetStyles.buttonRow}>
           <Button
             title="Cancel"
@@ -511,9 +666,7 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
           />
           <Button
             title="Create Delivery"
-            onPress={() => {
-              closeSheet();
-            }}
+            onPress={handleCreateDelivery}
             variant="primary"
             style={sheetStyles.submitButton}
           />
@@ -525,57 +678,225 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
 
 function TrackingSheet({ closeSheet, isFullScreen }: any) {
   const [trackingNumber, setTrackingNumber] = useState('');
-  
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [driverAccepted, setDriverAccepted] = useState(false);
+
+  // Mock driver data - in real app, this would come from backend
+  const mockDriverData = {
+    id: 'DRV001',
+    name: 'John Smith',
+    rating: 4.8,
+    reviews: 127,
+    phone: '+234 801 234 5678',
+    vehicle: 'Toyota Corolla - Silver',
+    licensePlate: 'ABC 123 XY',
+    avatar: 'JS',
+    eta: '15 minutes',
+    isAccepted: true,
+  };
+
+  const handleTrack = () => {
+    if (trackingNumber.trim()) {
+      // Mock API call - replace with actual API
+      const mockData = {
+        trackingId: trackingNumber,
+        status: 'in_transit',
+        pickupAddress: '123 Main St, Lagos',
+        deliveryAddress: '456 Oak Ave, Lagos',
+        recipientName: 'Jane Doe',
+        recipientContact: '+234 801 987 6543',
+        packageType: 'Document',
+        estimatedDelivery: 'Today, 4:00 PM',
+        progress: [
+          {
+            step: 'Package Picked Up',
+            time: '10:30 AM',
+            completed: true,
+          },
+          {
+            step: 'In Transit',
+            time: '11:45 AM',
+            completed: true,
+          },
+          {
+            step: 'Out for Delivery',
+            time: 'Estimated: 2:00 PM',
+            completed: false,
+          },
+          {
+            step: 'Delivered',
+            time: 'Estimated: 4:00 PM',
+            completed: false,
+          },
+        ],
+        driver: mockDriverData,
+      };
+
+      setTrackingData(mockData);
+      setDriverAccepted(mockData.driver.isAccepted);
+    }
+  };
+
+  if (trackingData) {
+    return (
+      <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
+        <View style={sheetStyles.header}>
+          <TouchableOpacity onPress={() => setTrackingData(null)}>
+            <Text style={{ color: '#007AFF', fontSize: 16, fontWeight: '600' }}>
+              ← Back
+            </Text>
+          </TouchableOpacity>
+          <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>
+            Tracking Details
+          </Text>
+          <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
+            <X size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Tracking ID */}
+          <View style={sheetStyles.trackingIdCard}>
+            <Text style={sheetStyles.trackingIdLabel}>Tracking Number</Text>
+            <Text style={sheetStyles.trackingIdNumber}>{trackingData.trackingId}</Text>
+          </View>
+
+          {/* Driver Information - Show when driver accepts */}
+          {driverAccepted && (
+            <>
+              <Text style={sheetStyles.sectionTitle}>Driver Assigned</Text>
+              <View style={sheetStyles.driverCard}>
+                <View style={sheetStyles.driverAvatar}>
+                  <Text style={sheetStyles.driverAvatarText}>{trackingData.driver.avatar}</Text>
+                </View>
+                <View style={sheetStyles.driverInfo}>
+                  <Text style={sheetStyles.driverName}>{trackingData.driver.name}</Text>
+                  <View style={sheetStyles.ratingRow}>
+                    <Text style={sheetStyles.ratingStars}>⭐ {trackingData.driver.rating}</Text>
+                    <Text style={sheetStyles.reviewCount}>
+                      ({trackingData.driver.reviews} reviews)
+                    </Text>
+                  </View>
+                  <Text style={sheetStyles.vehicleInfo}>{trackingData.driver.vehicle}</Text>
+                  <Text style={sheetStyles.etaText}>ETA: {trackingData.driver.eta}</Text>
+                </View>
+              </View>
+
+              {/* Contact Driver */}
+              <View style={sheetStyles.contactRow}>
+                <TouchableOpacity style={sheetStyles.contactButton}>
+                  <Phone size={20} color="#fff" />
+                  <Text style={sheetStyles.contactButtonText}>Call Driver</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={sheetStyles.messageButton}>
+                  <MessageSquare size={20} color="#007AFF" />
+                  <Text style={sheetStyles.messageButtonText}>Message</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          {/* Delivery Progress */}
+          <Text style={sheetStyles.sectionTitle}>Delivery Progress</Text>
+          <View style={sheetStyles.progressContainer}>
+            {trackingData.progress.map((step: any, index: number) => (
+              <View key={index} style={sheetStyles.progressStep}>
+                <View
+                  style={[
+                    sheetStyles.progressDot,
+                    step.completed && sheetStyles.completedDot,
+                    !step.completed &&
+                      index === trackingData.progress.findIndex((s: any) => !s.completed) &&
+                      sheetStyles.activeDot,
+                  ]}
+                />
+                {index < trackingData.progress.length - 1 && (
+                  <View
+                    style={[
+                      sheetStyles.progressLine,
+                      step.completed && sheetStyles.completedLine,
+                    ]}
+                  />
+                )}
+                <View style={sheetStyles.stepContent}>
+                  <Text style={sheetStyles.stepTitle}>{step.step}</Text>
+                  <Text style={sheetStyles.stepTime}>{step.time}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Delivery Details */}
+          <Text style={sheetStyles.sectionTitle}>Delivery Details</Text>
+          <View style={sheetStyles.detailsCard}>
+            <View style={sheetStyles.detailRow}>
+              <Text style={sheetStyles.detailLabel}>From:</Text>
+              <Text style={sheetStyles.detailValue}>{trackingData.pickupAddress}</Text>
+            </View>
+            <View style={sheetStyles.divider} />
+            <View style={sheetStyles.detailRow}>
+              <Text style={sheetStyles.detailLabel}>To:</Text>
+              <Text style={sheetStyles.detailValue}>{trackingData.deliveryAddress}</Text>
+            </View>
+            <View style={sheetStyles.divider} />
+            <View style={sheetStyles.detailRow}>
+              <Text style={sheetStyles.detailLabel}>Recipient:</Text>
+              <Text style={sheetStyles.detailValue}>{trackingData.recipientName}</Text>
+            </View>
+            <View style={sheetStyles.divider} />
+            <View style={sheetStyles.detailRow}>
+              <Text style={sheetStyles.detailLabel}>Contact:</Text>
+              <Text style={sheetStyles.detailValue}>{trackingData.recipientContact}</Text>
+            </View>
+            <View style={sheetStyles.divider} />
+            <View style={sheetStyles.detailRow}>
+              <Text style={sheetStyles.detailLabel}>Estimated Delivery:</Text>
+              <Text style={sheetStyles.detailValue}>{trackingData.estimatedDelivery}</Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Search tracking number view
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
       <View style={sheetStyles.header}>
-        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>Track Package</Text>
+        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>
+          Track Package
+        </Text>
         <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}>
           <X size={24} color="#666" />
         </TouchableOpacity>
       </View>
-      
+
       <View style={[sheetStyles.trackingContainer, isFullScreen && sheetStyles.fullScreenContent]}>
         <Input
           placeholder="Enter tracking number"
           value={trackingNumber}
           onChangeText={setTrackingNumber}
           icon={<Package size={20} color="#666" />}
-          
         />
-        
+
         <Button
           title="Track"
-          onPress={() => {}}
+          onPress={handleTrack}
           variant="primary"
           style={sheetStyles.trackButton}
         />
-        
-        <View style={sheetStyles.trackingStatus}>
-          <Text style={sheetStyles.sectionTitle}>Delivery Progress</Text>
-          <View style={sheetStyles.statusStep}>
-            <View style={[sheetStyles.statusDot, sheetStyles.activeDot]} />
-            <Text style={sheetStyles.statusText}>Package Picked Up</Text>
-            <Text style={sheetStyles.statusTime}>Today, 10:30 AM</Text>
-          </View>
-          
-          <View style={sheetStyles.statusStep}>
-            <View style={[sheetStyles.statusDot, sheetStyles.activeDot]} />
-            <Text style={sheetStyles.statusText}>In Transit</Text>
-            <Text style={sheetStyles.statusTime}>Today, 11:45 AM</Text>
-          </View>
-          
-          <View style={sheetStyles.statusStep}>
-            <View style={sheetStyles.statusDot} />
-            <Text style={sheetStyles.statusText}>Out for Delivery</Text>
-            <Text style={sheetStyles.statusTime}>Estimated: 2:00 PM</Text>
-          </View>
-          
-          <View style={sheetStyles.statusStep}>
-            <View style={sheetStyles.statusDot} />
-            <Text style={sheetStyles.statusText}>Delivered</Text>
-            <Text style={sheetStyles.statusTime}>Estimated: 4:00 PM</Text>
-          </View>
+
+        <View style={sheetStyles.infoContainer}>
+          <Text style={sheetStyles.infoTitle}>How to track your delivery:</Text>
+          <Text style={sheetStyles.infoText}>
+            1. Enter your tracking number in the field above
+          </Text>
+          <Text style={sheetStyles.infoText}>
+            2. We'll show you real-time updates of your package
+          </Text>
+          <Text style={sheetStyles.infoText}>
+            3. Once a driver accepts, you'll see their details and live location
+          </Text>
         </View>
       </View>
     </View>
@@ -1282,3 +1603,357 @@ const sheetStyles = StyleSheet.create({
     marginHorizontal: 4,
   },
 });
+
+const additionalSheetStyles = {
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#666',
+    marginTop: 16,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  row: {
+    flexDirection: 'row' as const,
+    gap: 12,
+    marginBottom: 16,
+  },
+  halfInput: {
+    flex: 1,
+  },
+  successContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  checkmarkCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 30,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  trackingCard: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  trackingLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  trackingNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 12,
+    fontFamily: 'Courier New',
+    letterSpacing: 2,
+  },
+  copyButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  copyButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  summaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 16,
+  },
+  summaryRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  summaryLabel: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  summaryValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000',
+    flex: 1,
+    textAlign: 'right',
+    paddingLeft: 10,
+  },
+  infoBox: {
+    backgroundColor: 'rgba(0, 122, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+    width: '100%',
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#333',
+    lineHeight: 18,
+  },
+};
+
+// New styles for enhanced tracking
+const trackingStyles = {
+  trackingIdCard: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  trackingIdLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  trackingIdNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#007AFF',
+    fontFamily: 'Courier New',
+    letterSpacing: 1,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  driverCard: {
+    flexDirection: 'row' as const,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    alignItems: 'center',
+  },
+  driverAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  driverAvatarText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  driverInfo: {
+    flex: 1,
+  },
+  driverName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 4,
+  },
+  ratingRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 4,
+  },
+  ratingStars: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  reviewCount: {
+    fontSize: 12,
+    color: '#666',
+  },
+  vehicleInfo: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  etaText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  contactRow: {
+    flexDirection: 'row' as const,
+    gap: 12,
+    marginBottom: 20,
+  },
+  contactButton: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 8,
+  },
+  contactButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  messageButton: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  messageButtonText: {
+    color: '#007AFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  progressContainer: {
+    marginBottom: 20,
+    paddingLeft: 8,
+  },
+  progressStep: {
+    flexDirection: 'row' as const,
+    marginBottom: 16,
+    position: 'relative' as const,
+  },
+  progressDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#ddd',
+    marginRight: 16,
+    marginTop: 2,
+  },
+  completedDot: {
+    backgroundColor: '#007AFF',
+  },
+  activeDot: {
+    backgroundColor: '#007AFF',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 14,
+  },
+  progressLine: {
+    position: 'absolute' as const,
+    left: 7,
+    top: 16,
+    width: 2,
+    height: 40,
+    backgroundColor: '#ddd',
+  },
+  completedLine: {
+    backgroundColor: '#007AFF',
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  stepTime: {
+    fontSize: 12,
+    color: '#666',
+  },
+  detailsCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  detailRow: {
+    paddingVertical: 12,
+  },
+  detailLabel: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+  },
+  infoContainer: {
+    backgroundColor: 'rgba(0, 122, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 30,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+};

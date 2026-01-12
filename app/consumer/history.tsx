@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, RefreshControl, SafeAreaView } from 'react-native';
 import { Card, Header } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
@@ -16,7 +16,7 @@ export default function ConsumerHistory() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Header title="Delivery History" subtitle={`${deliveredDeliveries.length + 5} completed`} />
       <ScrollView
         style={styles.content}
@@ -51,7 +51,7 @@ export default function ConsumerHistory() {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
