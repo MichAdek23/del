@@ -5,17 +5,50 @@ export default function OthersLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        // Add modal presentation for modal screens
+        presentation: 'modal',
       }}
     >
-      <Stack.Screen name="add-address" />
-      <Stack.Screen name="add-payment-method" />
-      <Stack.Screen name="chat-detail" />
-      <Stack.Screen name="driver-details" />
-      <Stack.Screen name="messages" />
-      <Stack.Screen name="payment-methods" />
-      <Stack.Screen name="profile-edit" />
-      <Stack.Screen name="saved-addresses" />
-      <Stack.Screen name="settings" />
+      {/* Regular screens */}
+      <Stack.Screen name="index" />
+      
+      {/* Modal screens - override presentation to be modal */}
+      <Stack.Screen 
+        name="add-address" 
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen 
+        name="add-payment-method" 
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen 
+        name="chat-detail" 
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen 
+        name="driver-details" 
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen 
+        name="messages" 
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen 
+        name="payment-methods" 
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen 
+        name="profile-edit" 
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen 
+        name="saved-addresses" 
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen 
+        name="settings" 
+        options={{ presentation: 'modal' }}
+      />
     </Stack>
   );
 }
