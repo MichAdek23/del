@@ -346,8 +346,17 @@ export default function ConsumerHome() {
         </View>
       </View>
 
-      <View style={[styles.safeArea, Platform.OS === 'android' && styles.safeAreaAndroid, Platform.OS === 'ios' && styles.safeAreaIos]}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      {/* IMPORTANT: let touches pass through this container to the map beneath by using pointerEvents="box-none" */}
+      <View
+        style={[styles.safeArea, Platform.OS === 'android' && styles.safeAreaAndroid, Platform.OS === 'ios' && styles.safeAreaIos]}
+        pointerEvents="box-none"
+      >
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          pointerEvents="box-none" // also let ScrollView pass touches through where it has no children
+        >
           <View style={{ height: 100 }} />
         </ScrollView>
       </View>
@@ -385,7 +394,15 @@ export default function ConsumerHome() {
         </Animated.View>
       </Animated.View>
 
-      {activeSheet && <Animated.View style={[{ opacity: sheetAnimation.interpolate({ inputRange: [height - SHEET_FULL_HEIGHT, height - SHEET_HALF_HEIGHT], outputRange: [1, 0.7], extrapolate: 'clamp' }) }]}><TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={closeSheet} activeOpacity={1} /></Animated.View>}
+      {/* Backdrop that blocks touches only when a sheet is open */}
+      {activeSheet && (
+        <Animated.View
+          pointerEvents="auto" // ensure it receives touches when visible
+          style={[{ opacity: sheetAnimation.interpolate({ inputRange: [height - SHEET_FULL_HEIGHT, height - SHEET_HALF_HEIGHT], outputRange: [1, 0.7], extrapolate: 'clamp' }) }]}
+        >
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={closeSheet} activeOpacity={1} />
+        </Animated.View>
+      )}
 
       <Animated.View
         style={[styles.sheetContainer, { height: sheetHeight, maxHeight: height - MINIMIZED_HEIGHT, transform: [{ translateY: Animated.add(sheetAnimation, Animated.multiply(panY, 0.5)) }] }]}
@@ -771,7 +788,6 @@ function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
   );
 }
 
-
 /* Styles (complete) */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
@@ -960,5 +976,4 @@ const sheetStyles = StyleSheet.create({
   menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
 });
 
-/* export helper in case other modules import it */
 export { calculateStraightDistance };
