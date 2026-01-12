@@ -1,55 +1,48 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, Platform, StatusBar, Animated, PanResponder, Alert, FlatList } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, Platform, StatusBar, Animated, PanResponder, Alert, FlatList, ActivityIndicator } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import { Plus, MapPin, Package, Clock, User, X, Calendar, CreditCard, MessageSquare, Settings, ArrowRight, Star, Phone, Navigation, ChevronUp, ChevronDown, Maximize2, Minimize2, Check, Search } from 'lucide-react-native';
+import { Plus, MapPin, Package, Clock, User, X, Calendar, CreditCard, MessageSquare, Settings, ArrowRight, Star, Phone, Navigation, ChevronUp, ChevronDown, Maximize2, Minimize2, Check, Search, Locate, Target, Route, Home, Building, Navigation as NavIcon } from 'lucide-react-native';
 import { mockConsumer, mockDeliveries } from '@/constants/mockData';
+import * as Location from 'expo-location';
 
-const { height } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const QUICK_ACTIONS_HEIGHT = height * 0.35;
 const MINIMIZED_HEIGHT = 70;
 const SHEET_HALF_HEIGHT = Platform.OS === 'ios' ? height * 0.5 : height * 0.55;
 const SHEET_FULL_HEIGHT = Platform.OS === 'ios' ? height * 0.85 : height * 0.9;
 
-// Mock location suggestions
-const LOCATION_SUGGESTIONS = {
-  'lekki': [
-    { name: 'Lekki Phase 1', lat: 6.4454, lng: 3.5860 },
-    { name: 'Lekki Phase 2', lat: 6.4289, lng: 3.5890 },
-    { name: 'Lekki Axis', lat: 6.4500, lng: 3.5950 },
-  ],
-  'ikoyi': [
-    { name: 'Ikoyi Bridge', lat: 6.4597, lng: 3.6243 },
-    { name: 'Old Ikoyi', lat: 6.4689, lng: 3.6189 },
-  ],
-  'vi': [
-    { name: 'Victoria Island', lat: 6.4341, lng: 3.4206 },
-    { name: 'VI Axis', lat: 6.4400, lng: 3.4300 },
-  ],
+// OpenStreetMap Nominatim API for geocoding
+const NOMINATIM_API = 'https://nominatim.openstreetmap.org/search';
+// OSRM API for routing (road distance)
+const OSRM_API = 'https://router.project-osrm.org/route/v1/driving';
+
+const PLACE_TYPES = {
+  residential: ['house', 'home', 'apartment', 'residence'],
+  commercial: ['office', 'business', 'company', 'store', 'shop', 'mall'],
+  landmark: ['hotel', 'restaurant', 'hospital', 'school', 'university', 'park'],
 };
 
-const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-};
-
-const getLocationSuggestions = (input: string) => {
-  const key = input.toLowerCase();
-  for (const [searchKey, locations] of Object.entries(LOCATION_SUGGESTIONS)) {
-    if (searchKey.includes(key) || key.includes(searchKey)) {
-      return locations;
-    }
-  }
-  return [];
-};
+interface LocationSuggestion {
+  name: string;
+  display_name: string;
+  lat: number;
+  lon: number;
+  type: string;
+  icon: string;
+  address: {
+    road?: string;
+    suburb?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+}
 
 export default function ConsumerHome() {
+  const mapRef = useRef<MapView>(null);
   const [user] = useState(mockConsumer);
   const [activeSheet, setActiveSheet] = useState(null);
   const [sheetAnimation] = useState(new Animated.Value(height));
@@ -60,6 +53,61 @@ export default function ConsumerHome() {
   const quickActionsHeight = useRef(new Animated.Value(MINIMIZED_HEIGHT)).current;
   const quickActionsDragY = useRef(new Animated.Value(0)).current;
   const activeDeliveries = mockDeliveries.filter((d) => d.status !== 'delivered');
+  const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 6.5244,
+    longitude: 3.3792,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Location permission is required for better experience');
+        setIsLoadingLocation(false);
+        return;
+      }
+
+      try {
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        const { latitude, longitude } = location.coords;
+        setUserLocation({ latitude, longitude });
+        setMapRegion({
+          latitude,
+          longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+        
+        // Animate to user location
+        mapRef.current?.animateToRegion({
+          latitude,
+          longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }, 1000);
+      } catch (error) {
+        console.error('Error getting location:', error);
+      } finally {
+        setIsLoadingLocation(false);
+      }
+    })();
+  }, []);
+
+  const focusOnUserLocation = () => {
+    if (userLocation) {
+      mapRef.current?.animateToRegion({
+        ...userLocation,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 1000);
+    }
+  };
 
   const sheetPanResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -132,8 +180,8 @@ export default function ConsumerHome() {
 
   const renderSheetContent = () => {
     switch (activeSheet) {
-      case 'newDelivery': return <NewDeliverySheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} />;
-      case 'tracking': return <TrackingSheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} />;
+      case 'newDelivery': return <NewDeliverySheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} mapRef={mapRef} userLocation={userLocation} />;
+      case 'tracking': return <TrackingSheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} mapRef={mapRef} />;
       case 'packages': return <PackagesSheet closeSheet={closeSheet} deliveries={activeDeliveries} isFullScreen={isSheetFullScreen} />;
       case 'schedule': return <ScheduleSheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} />;
       case 'profile': return <ProfileSheet closeSheet={closeSheet} user={user} isFullScreen={isSheetFullScreen} />;
@@ -146,25 +194,49 @@ export default function ConsumerHome() {
       <StatusBar translucent backgroundColor="transparent" />
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           style={styles.map}
-          initialRegion={{
-            latitude: 6.5244,
-            longitude: 3.3792,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
+          provider={PROVIDER_GOOGLE}
+          initialRegion={mapRegion}
+          region={mapRegion}
+          onRegionChangeComplete={setMapRegion}
           zoomEnabled={true}
           scrollEnabled={true}
           pitchEnabled={true}
           rotateEnabled={true}
+          zoomControlEnabled={true}
+          showsUserLocation={true}
+          showsMyLocationButton={false}
+          showsCompass={true}
+          showsScale={true}
+          loadingEnabled={true}
+          loadingIndicatorColor="#007AFF"
+          loadingBackgroundColor="#ffffff"
         >
-          <Marker
-            coordinate={{ latitude: 6.5244, longitude: 3.3792 }}
-            title="Current Location"
-            description="You are here"
-          />
+          {userLocation && (
+            <Marker
+              coordinate={userLocation}
+              title="Your Location"
+              description="You are here"
+            >
+              <View style={styles.userMarker}>
+                <View style={styles.userMarkerInner}>
+                  <Locate size={16} color="#fff" />
+                </View>
+              </View>
+            </Marker>
+          )}
         </MapView>
-        <View style={styles.mapOverlay} />
+        
+        {/* Map Controls */}
+        <View style={styles.mapControls}>
+          <TouchableOpacity style={styles.mapControlButton} onPress={focusOnUserLocation}>
+            <Target size={20} color="#007AFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.mapControlButton} onPress={() => mapRef.current?.animateToRegion(mapRegion, 500)}>
+            <Navigation size={20} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={[styles.safeArea, Platform.OS === 'android' && styles.safeAreaAndroid, Platform.OS === 'ios' && styles.safeAreaIos]}>
@@ -213,64 +285,228 @@ export default function ConsumerHome() {
   );
 }
 
-function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
-  const mapRef = useRef<MapView>(null);
-  const [formData, setFormData] = useState({ from: '', to: '', packageType: '', description: '', weight: '', recipientName: '', recipientContact: '', fromLat: 0, fromLng: 0, toLat: 0, toLng: 0 });
+function NewDeliverySheet({ closeSheet, isFullScreen, mapRef, userLocation }: any) {
+  const [formData, setFormData] = useState({ 
+    from: '', 
+    to: '', 
+    packageType: '', 
+    description: '', 
+    weight: '', 
+    recipientName: '', 
+    recipientContact: '',
+    fromLat: 0,
+    fromLng: 0,
+    toLat: 0,
+    toLng: 0,
+  });
   const [deliveryCreated, setDeliveryCreated] = useState(false);
   const [trackingId, setTrackingId] = useState('');
-  const [fromSuggestions, setFromSuggestions] = useState<any[]>([]);
-  const [toSuggestions, setToSuggestions] = useState<any[]>([]);
+  const [fromSuggestions, setFromSuggestions] = useState<LocationSuggestion[]>([]);
+  const [toSuggestions, setToSuggestions] = useState<LocationSuggestion[]>([]);
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
   const [showToSuggestions, setShowToSuggestions] = useState(false);
   const [distance, setDistance] = useState(0);
+  const [routeCoords, setRouteCoords] = useState<Array<{latitude: number, longitude: number}>>([]);
+  const [isLoadingFrom, setIsLoadingFrom] = useState(false);
+  const [isLoadingTo, setIsLoadingTo] = useState(false);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
 
   const generateTrackingId = () => `DEL${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-  const handleFromChange = (text: string) => {
-    setFormData({ ...formData, from: text });
-    const suggestions = getLocationSuggestions(text);
-    setFromSuggestions(suggestions);
-    setShowFromSuggestions(suggestions.length > 0);
-  };
-
-  const handleToChange = (text: string) => {
-    setFormData({ ...formData, to: text });
-    const suggestions = getLocationSuggestions(text);
-    setToSuggestions(suggestions);
-    setShowToSuggestions(suggestions.length > 0);
-  };
-
-  const selectFromLocation = (location: any) => {
-    setFormData({ ...formData, from: location.name, fromLat: location.lat, fromLng: location.lng });
-    setShowFromSuggestions(false);
-    setFromSuggestions([]);
-    calculateRouteDistance(location.lat, location.lng, formData.toLat, formData.toLng);
-  };
-
-  const selectToLocation = (location: any) => {
-    setFormData({ ...formData, to: location.name, toLat: location.lat, toLng: location.lng });
-    setShowToSuggestions(false);
-    setToSuggestions([]);
-    calculateRouteDistance(formData.fromLat, formData.fromLng, location.lat, location.lng);
-  };
-
-  const calculateRouteDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    if (lat1 && lng1 && lat2 && lng2) {
-      const dist = calculateDistance(lat1, lng1, lat2, lng2);
-      setDistance(dist);
-      animateToRoute(lat1, lng1, lat2, lng2);
+  const searchLocations = async (query: string): Promise<LocationSuggestion[]> => {
+    if (!query || query.length < 3) return [];
+    
+    try {
+      const response = await fetch(
+        `${NOMINATIM_API}?format=json&q=${encodeURIComponent(query + ', Lagos, Nigeria')}&limit=5&addressdetails=1`
+      );
+      const data = await response.json();
+      
+      return data.map((item: any) => ({
+        name: item.name || item.display_name.split(',')[0],
+        display_name: item.display_name,
+        lat: parseFloat(item.lat),
+        lon: parseFloat(item.lon),
+        type: item.type,
+        icon: item.icon,
+        address: item.address || {},
+      }));
+    } catch (error) {
+      console.error('Search error:', error);
+      return [];
     }
   };
 
-  const animateToRoute = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const avgLat = (lat1 + lat2) / 2;
-    const avgLng = (lng1 + lng2) / 2;
-    mapRef.current?.animateToRegion({
-      latitude: avgLat,
-      longitude: avgLng,
-      latitudeDelta: Math.abs(lat2 - lat1) * 1.5 || 0.1,
-      longitudeDelta: Math.abs(lng2 - lng1) * 1.5 || 0.1,
-    });
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
+
+  const handleFromChange = debounce(async (text: string) => {
+    setFormData(prev => ({ ...prev, from: text }));
+    if (text.length < 3) {
+      setFromSuggestions([]);
+      setShowFromSuggestions(false);
+      return;
+    }
+    
+    setIsLoadingFrom(true);
+    const suggestions = await searchLocations(text);
+    setFromSuggestions(suggestions);
+    setShowFromSuggestions(suggestions.length > 0);
+    setIsLoadingFrom(false);
+  }, 500);
+
+  const handleToChange = debounce(async (text: string) => {
+    setFormData(prev => ({ ...prev, to: text }));
+    if (text.length < 3) {
+      setToSuggestions([]);
+      setShowToSuggestions(false);
+      return;
+    }
+    
+    setIsLoadingTo(true);
+    const suggestions = await searchLocations(text);
+    setToSuggestions(suggestions);
+    setShowToSuggestions(suggestions.length > 0);
+    setIsLoadingTo(false);
+  }, 500);
+
+  const calculateRoute = async (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    if (!lat1 || !lng1 || !lat2 || !lng2) return;
+    
+    setIsCalculatingRoute(true);
+    try {
+      const response = await fetch(
+        `${OSRM_API}/${lng1},${lat1};${lng2},${lat2}?overview=full&geometries=geojson`
+      );
+      const data = await response.json();
+      
+      if (data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const roadDistance = route.distance / 1000; // Convert meters to kilometers
+        setDistance(parseFloat(roadDistance.toFixed(2)));
+        
+        // Extract coordinates for the polyline
+        const coordinates = route.geometry.coordinates.map((coord: [number, number]) => ({
+          latitude: coord[1],
+          longitude: coord[0],
+        }));
+        setRouteCoords(coordinates);
+        
+        // Animate map to show the route
+        if (mapRef.current) {
+          const bounds = {
+            minLat: Math.min(lat1, lat2),
+            maxLat: Math.max(lat1, lat2),
+            minLng: Math.min(lng1, lng2),
+            maxLng: Math.max(lng1, lng2),
+          };
+          
+          const latitudeDelta = (bounds.maxLat - bounds.minLat) * 1.5;
+          const longitudeDelta = (bounds.maxLng - bounds.minLng) * 1.5;
+          
+          mapRef.current.animateToRegion({
+            latitude: (bounds.minLat + bounds.maxLat) / 2,
+            longitude: (bounds.minLng + bounds.maxLng) / 2,
+            latitudeDelta: Math.max(latitudeDelta, 0.01),
+            longitudeDelta: Math.max(longitudeDelta, 0.01),
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Route calculation error:', error);
+      // Fallback to straight-line distance
+      const straightDistance = calculateStraightDistance(lat1, lng1, lat2, lng2);
+      setDistance(straightDistance);
+    } finally {
+      setIsCalculatingRoute(false);
+    }
+  };
+
+  const calculateStraightDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return parseFloat((R * c).toFixed(2));
+  };
+
+  const selectFromLocation = (location: LocationSuggestion) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      from: location.display_name, 
+      fromLat: location.lat, 
+      fromLng: location.lon 
+    }));
+    setShowFromSuggestions(false);
+    setFromSuggestions([]);
+    
+    // Add marker to map
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: location.lat,
+        longitude: location.lon,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 1000);
+    }
+    
+    // Calculate route if destination is already selected
+    if (formData.toLat && formData.toLng) {
+      calculateRoute(location.lat, location.lon, formData.toLat, formData.toLng);
+    }
+  };
+
+  const selectToLocation = (location: LocationSuggestion) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      to: location.display_name, 
+      toLat: location.lat, 
+      toLng: location.lon 
+    }));
+    setShowToSuggestions(false);
+    setToSuggestions([]);
+    
+    // Add marker to map
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: location.lat,
+        longitude: location.lon,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 1000);
+    }
+    
+    // Calculate route if pickup is already selected
+    if (formData.fromLat && formData.fromLng) {
+      calculateRoute(formData.fromLat, formData.fromLng, location.lat, location.lon);
+    }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (userLocation) {
+      setFormData(prev => ({
+        ...prev,
+        from: 'Current Location',
+        fromLat: userLocation.latitude,
+        fromLng: userLocation.longitude,
+      }));
+      
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          ...userLocation,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }, 1000);
+      }
+    }
   };
 
   const handleCreateDelivery = () => {
@@ -281,6 +517,19 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
     setTrackingId(generateTrackingId());
     setDeliveryCreated(true);
   };
+
+  // Render markers and route on the main map
+  useEffect(() => {
+    if (mapRef.current && (formData.fromLat || formData.toLat)) {
+      // Clear previous route and markers
+      setRouteCoords([]);
+      
+      // Calculate new route if both locations are set
+      if (formData.fromLat && formData.fromLng && formData.toLat && formData.toLng) {
+        calculateRoute(formData.fromLat, formData.fromLng, formData.toLat, formData.toLng);
+      }
+    }
+  }, [formData.fromLat, formData.fromLng, formData.toLat, formData.toLng]);
 
   if (deliveryCreated) {
     return (
@@ -299,13 +548,13 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
             </View>
             <View style={sheetStyles.summaryCard}>
               <Text style={sheetStyles.summaryTitle}>Delivery Summary</Text>
-              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>From:</Text><Text style={sheetStyles.summaryValue}>{formData.from}</Text></View>
-              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>To:</Text><Text style={sheetStyles.summaryValue}>{formData.to}</Text></View>
-              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>Distance:</Text><Text style={sheetStyles.summaryValue}>{distance.toFixed(2)} km</Text></View>
+              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>From:</Text><Text style={sheetStyles.summaryValue}>{formData.from.split(',')[0]}</Text></View>
+              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>To:</Text><Text style={sheetStyles.summaryValue}>{formData.to.split(',')[0]}</Text></View>
+              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>Road Distance:</Text><Text style={sheetStyles.summaryValue}>{distance} km</Text></View>
               <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>Recipient:</Text><Text style={sheetStyles.summaryValue}>{formData.recipientName}</Text></View>
             </View>
             <Button title="Track Delivery" onPress={() => { closeSheet(); (global as any).openModalSheet('tracking'); }} variant="primary" style={sheetStyles.submitButton} />
-            <Button title="Done" onPress={closeSheet} style={sheetStyles.submitButton} />
+            <Button title="Done" onPress={closeSheet} variant="outline" style={sheetStyles.submitButton} />
           </View>
         </ScrollView>
       </View>
@@ -321,226 +570,209 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
       <ScrollView showsVerticalScrollIndicator={false} style={isFullScreen && sheetStyles.fullScreenScroll}>
         <Text style={sheetStyles.sectionLabel}>Pickup Details</Text>
         <View style={sheetStyles.inputContainer}>
-          <Input label="Pickup Address" placeholder="Enter pickup location" value={formData.from} onChangeText={handleFromChange} icon={<MapPin size={20} color="#666" />} />
-          {showFromSuggestions && <FlatList data={fromSuggestions} keyExtractor={(_, i) => i.toString()} scrollEnabled={false} renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => selectFromLocation(item)} style={sheetStyles.suggestionItem}>
-              <MapPin size={16} color="#007AFF" />
-              <Text style={sheetStyles.suggestionText}>{item.name}</Text>
+          <View style={sheetStyles.inputWithButton}>
+            <Input 
+              label="Pickup Address" 
+              placeholder="Enter pickup location" 
+              value={formData.from}
+              onChangeText={handleFromChange}
+              icon={<MapPin size={20} color="#666" />}
+            />
+            <TouchableOpacity 
+              style={sheetStyles.currentLocationButton}
+              onPress={handleUseCurrentLocation}
+            >
+              <Locate size={18} color="#007AFF" />
             </TouchableOpacity>
-          )} />}
+          </View>
+          {isLoadingFrom && <ActivityIndicator size="small" color="#007AFF" style={sheetStyles.loadingIndicator} />}
+          {showFromSuggestions && fromSuggestions.length > 0 && (
+            <FlatList 
+              data={fromSuggestions}
+              keyExtractor={(item, index) => index.toString()}
+              scrollEnabled={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  onPress={() => selectFromLocation(item)} 
+                  style={sheetStyles.suggestionItem}
+                >
+                  <View style={sheetStyles.suggestionIcon}>
+                    {item.type === 'house' || item.type === 'residential' ? (
+                      <Home size={16} color="#007AFF" />
+                    ) : item.type === 'commercial' ? (
+                      <Building size={16} color="#007AFF" />
+                    ) : (
+                      <MapPin size={16} color="#007AFF" />
+                    )}
+                  </View>
+                  <View style={sheetStyles.suggestionContent}>
+                    <Text style={sheetStyles.suggestionTitle}>{item.name}</Text>
+                    <Text style={sheetStyles.suggestionAddress} numberOfLines={1}>
+                      {item.address.road ? `${item.address.road}, ` : ''}
+                      {item.address.suburb || ''}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )}
         </View>
         
         <Text style={sheetStyles.sectionLabel}>Delivery Details</Text>
         <View style={sheetStyles.inputContainer}>
-          <Input label="Delivery Address" placeholder="Enter delivery location" value={formData.to} onChangeText={handleToChange} icon={<MapPin size={20} color="#666" />} />
-          {showToSuggestions && <FlatList data={toSuggestions} keyExtractor={(_, i) => i.toString()} scrollEnabled={false} renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => selectToLocation(item)} style={sheetStyles.suggestionItem}>
-              <MapPin size={16} color="#007AFF" />
-              <Text style={sheetStyles.suggestionText}>{item.name}</Text>
-            </TouchableOpacity>
-          )} />}
+          <Input 
+            label="Delivery Address" 
+            placeholder="Enter delivery location" 
+            value={formData.to}
+            onChangeText={handleToChange}
+            icon={<MapPin size={20} color="#666" />}
+          />
+          {isLoadingTo && <ActivityIndicator size="small" color="#007AFF" style={sheetStyles.loadingIndicator} />}
+          {showToSuggestions && toSuggestions.length > 0 && (
+            <FlatList 
+              data={toSuggestions}
+              keyExtractor={(item, index) => index.toString()}
+              scrollEnabled={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  onPress={() => selectToLocation(item)} 
+                  style={sheetStyles.suggestionItem}
+                >
+                  <View style={sheetStyles.suggestionIcon}>
+                    {item.type === 'house' || item.type === 'residential' ? (
+                      <Home size={16} color="#007AFF" />
+                    ) : item.type === 'commercial' ? (
+                      <Building size={16} color="#007AFF" />
+                    ) : (
+                      <MapPin size={16} color="#007AFF" />
+                    )}
+                  </View>
+                  <View style={sheetStyles.suggestionContent}>
+                    <Text style={sheetStyles.suggestionTitle}>{item.name}</Text>
+                    <Text style={sheetStyles.suggestionAddress} numberOfLines={1}>
+                      {item.address.road ? `${item.address.road}, ` : ''}
+                      {item.address.suburb || ''}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )}
         </View>
 
-        {distance > 0 && (
+        {(distance > 0 || isCalculatingRoute) && (
           <View style={sheetStyles.distanceCard}>
-            <Text style={sheetStyles.distanceLabel}>Estimated Distance</Text>
-            <Text style={sheetStyles.distanceValue}>{distance.toFixed(2)} km</Text>
+            <View style={sheetStyles.distanceHeader}>
+              <Route size={20} color="#007AFF" />
+              <Text style={sheetStyles.distanceLabel}>Estimated Road Distance</Text>
+            </View>
+            {isCalculatingRoute ? (
+              <ActivityIndicator size="small" color="#007AFF" style={sheetStyles.routeLoading} />
+            ) : (
+              <Text style={sheetStyles.distanceValue}>{distance} km</Text>
+            )}
           </View>
         )}
         
         <View style={sheetStyles.row}>
           <View style={sheetStyles.halfInput}>
-            <Input label="Recipient Name" placeholder="Full name" value={formData.recipientName} onChangeText={(t) => setFormData({ ...formData, recipientName: t })} icon={<User size={20} color="#666" />} />
+            <Input 
+              label="Recipient Name" 
+              placeholder="Full name" 
+              value={formData.recipientName} 
+              onChangeText={(t) => setFormData(prev => ({ ...prev, recipientName: t }))} 
+              icon={<User size={20} color="#666" />} 
+            />
           </View>
           <View style={sheetStyles.halfInput}>
-            <Input label="Contact Number" placeholder="Phone number" value={formData.recipientContact} onChangeText={(t) => setFormData({ ...formData, recipientContact: t })} icon={<Phone size={20} color="#666" />} keyboardType="phone-pad" />
+            <Input 
+              label="Contact Number" 
+              placeholder="Phone number" 
+              value={formData.recipientContact} 
+              onChangeText={(t) => setFormData(prev => ({ ...prev, recipientContact: t }))} 
+              icon={<Phone size={20} color="#666" />} 
+              keyboardType="phone-pad" 
+            />
           </View>
         </View>
         
         <Text style={sheetStyles.sectionLabel}>Package Information</Text>
-        <Input label="Package Type" placeholder="e.g., Document, Parcel, Food" value={formData.packageType} onChangeText={(t) => setFormData({ ...formData, packageType: t })} icon={<Package size={20} color="#666" />} />
-        <Input label="Description" placeholder="Describe your package" value={formData.description} onChangeText={(t) => setFormData({ ...formData, description: t })} multiline numberOfLines={3} />
-        <Input label="Weight (kg)" placeholder="Approximate weight" value={formData.weight} onChangeText={(t) => setFormData({ ...formData, weight: t })} keyboardType="numeric" />
+        <Input 
+          label="Package Type" 
+          placeholder="e.g., Document, Parcel, Food" 
+          value={formData.packageType} 
+          onChangeText={(t) => setFormData(prev => ({ ...prev, packageType: t }))} 
+          icon={<Package size={20} color="#666" />} 
+        />
+        <Input 
+          label="Description" 
+          placeholder="Describe your package" 
+          value={formData.description} 
+          onChangeText={(t) => setFormData(prev => ({ ...prev, description: t }))} 
+          multiline 
+          numberOfLines={3} 
+        />
+        <Input 
+          label="Weight (kg)" 
+          placeholder="Approximate weight" 
+          value={formData.weight} 
+          onChangeText={(t) => setFormData(prev => ({ ...prev, weight: t }))} 
+          keyboardType="numeric" 
+        />
         
         <View style={sheetStyles.buttonRow}>
           <Button title="Cancel" onPress={closeSheet} style={sheetStyles.cancelButton} />
-          <Button title="Create Delivery" onPress={handleCreateDelivery} variant="primary" style={sheetStyles.submitButton} />
+          <Button title="Create Delivery" onPress={handleCreateDelivery} variant="primary" style={sheetStyles.submitButton} disabled={isCalculatingRoute} />
         </View>
       </ScrollView>
+      
+      {/* Render route on main map */}
+      {routeCoords.length > 0 && (
+        <Polyline
+          coordinates={routeCoords}
+          strokeColor="#007AFF"
+          strokeWidth={4}
+          lineCap="round"
+          lineJoin="round"
+        />
+      )}
+      
+      {/* Render markers on main map */}
+      {formData.fromLat && formData.fromLng && (
+        <Marker
+          coordinate={{ latitude: formData.fromLat, longitude: formData.fromLng }}
+          title="Pickup Location"
+          pinColor="#FF9500"
+        />
+      )}
+      
+      {formData.toLat && formData.toLng && (
+        <Marker
+          coordinate={{ latitude: formData.toLat, longitude: formData.toLng }}
+          title="Delivery Location"
+          pinColor="#34C759"
+        />
+      )}
     </View>
   );
 }
 
-function TrackingSheet({ closeSheet, isFullScreen }: any) {
-  const mapRef = useRef<MapView>(null);
-  const [trackingNumber, setTrackingNumber] = useState('');
-  const [trackingData, setTrackingData] = useState<any>(null);
-
-  const handleTrack = () => {
-    if (trackingNumber.trim()) {
-      setTrackingData({
-        trackingId: trackingNumber,
-        pickupAddress: '123 Main St, Lagos',
-        pickupLat: 6.5244,
-        pickupLng: 3.3792,
-        deliveryAddress: '456 Oak Ave, Lagos',
-        deliveryLat: 6.4454,
-        deliveryLng: 3.5860,
-        recipientName: 'Jane Doe',
-        recipientContact: '+234 801 987 6543',
-        estimatedDelivery: 'Today, 4:00 PM',
-        distance: calculateDistance(6.5244, 3.3792, 6.4454, 3.5860),
-        progress: [
-          { step: 'Package Picked Up', time: '10:30 AM', completed: true },
-          { step: 'In Transit', time: '11:45 AM', completed: true },
-          { step: 'Out for Delivery', time: 'Estimated: 2:00 PM', completed: false },
-          { step: 'Delivered', time: 'Estimated: 4:00 PM', completed: false },
-        ],
-        driver: { name: 'John Smith', rating: 4.8, reviews: 127, vehicle: 'Toyota Corolla - Silver', avatar: 'JS', eta: '15 minutes' },
-      });
-    }
-  };
-
-  if (trackingData) {
-    return (
-      <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
-        <View style={sheetStyles.header}>
-          <TouchableOpacity onPress={() => setTrackingData(null)}><Text style={{ color: '#007AFF', fontSize: 16, fontWeight: '600' }}>← Back</Text></TouchableOpacity>
-          <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>Tracking</Text>
-          <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
-        </View>
-        <ScrollView showsVerticalScrollIndicator={false} style={{ paddingHorizontal: 20 }}>
-          <View style={sheetStyles.trackingIdCard}>
-            <Text style={sheetStyles.trackingIdLabel}>Tracking Number</Text>
-            <Text style={sheetStyles.trackingIdNumber}>{trackingData.trackingId}</Text>
-          </View>
-          
-          <Text style={sheetStyles.sectionTitle}>Driver Assigned</Text>
-          <View style={sheetStyles.driverCard}>
-            <View style={sheetStyles.driverAvatar}><Text style={sheetStyles.driverAvatarText}>{trackingData.driver.avatar}</Text></View>
-            <View style={sheetStyles.driverInfo}>
-              <Text style={sheetStyles.driverName}>{trackingData.driver.name}</Text>
-              <Text style={sheetStyles.ratingStars}>⭐ {trackingData.driver.rating}</Text>
-              <Text style={sheetStyles.vehicleInfo}>{trackingData.driver.vehicle}</Text>
-              <Text style={sheetStyles.etaText}>ETA: {trackingData.driver.eta}</Text>
-            </View>
-          </View>
-          
-          <View style={sheetStyles.contactRow}>
-            <TouchableOpacity style={sheetStyles.contactButton}><Phone size={20} color="#fff" /><Text style={sheetStyles.contactButtonText}>Call</Text></TouchableOpacity>
-            <TouchableOpacity style={sheetStyles.messageButton}><MessageSquare size={20} color="#007AFF" /><Text style={sheetStyles.messageButtonText}>Message</Text></TouchableOpacity>
-          </View>
-          
-          <Text style={sheetStyles.sectionTitle}>Progress</Text>
-          {trackingData.progress.map((step: any, i: number) => (
-            <View key={i} style={sheetStyles.progressStep}>
-              <View style={[sheetStyles.progressDot, step.completed && sheetStyles.completedDot]} />
-              <View style={sheetStyles.stepContent}>
-                <Text style={sheetStyles.stepTitle}>{step.step}</Text>
-                <Text style={sheetStyles.stepTime}>{step.time}</Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
-      <View style={sheetStyles.header}>
-        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>Track Package</Text>
-        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
-      </View>
-      <View style={sheetStyles.trackingContainer}>
-        <Input placeholder="Enter tracking number" value={trackingNumber} onChangeText={setTrackingNumber} icon={<Package size={20} color="#666" />} />
-        <Button title="Track" onPress={handleTrack} variant="primary" style={sheetStyles.trackButton} />
-      </View>
-    </View>
-  );
+// Add this helper function at the top level
+function calculateStraightDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return parseFloat((R * c).toFixed(2));
 }
 
-function PackagesSheet({ closeSheet, deliveries, isFullScreen }: any) {
-  return (
-    <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
-      <View style={sheetStyles.header}>
-        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>My Packages</Text>
-        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
-      </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {deliveries.map((d: any) => (
-          <View key={d.id} style={sheetStyles.packageItem}>
-            <View style={sheetStyles.packageIcon}><Package size={20} color="#007AFF" /></View>
-            <View style={sheetStyles.packageInfo}>
-              <Text style={sheetStyles.packageTitle}>{d.packageDescription}</Text>
-              <Text style={sheetStyles.packageStatus}>{d.status}</Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
-function ScheduleSheet({ closeSheet, isFullScreen }: any) {
-  return (
-    <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
-      <View style={sheetStyles.header}>
-        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>Schedule Delivery</Text>
-        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
-      </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Input label="Pickup Date & Time" placeholder="Select date and time" icon={<Calendar size={20} color="#666" />} />
-        <Input label="Recipient Availability" placeholder="e.g., 9 AM - 5 PM" icon={<Clock size={20} color="#666" />} />
-        <Button title="Schedule Delivery" onPress={closeSheet} variant="primary" style={sheetStyles.submitButton} />
-      </ScrollView>
-    </View>
-  );
-}
-
-function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
-  const handleNavigation = (routeName: string) => {
-    closeSheet();
-    switch(routeName) {
-      case 'Payment Methods': router.push('/others/payment-methods'); break;
-      case 'Saved Addresses': router.push('/others/saved-addresses'); break;
-      case 'Messages': router.push('/others/messages'); break;
-      case 'Settings': router.push('/others/settings'); break;
-      default: router.push('/others/settings');
-    }
-  };
-
-  return (
-    <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
-      <View style={sheetStyles.header}>
-        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>My Profile</Text>
-        <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
-      </View>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={sheetStyles.profileHeader}>
-          <View style={sheetStyles.profileAvatar}><Text style={sheetStyles.avatarText}>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</Text></View>
-          <Text style={sheetStyles.profileName}>{user.firstName} {user.lastName}</Text>
-          <Text style={sheetStyles.profileEmail}>{user.email}</Text>
-        </View>
-        <View style={sheetStyles.menuSection}>
-          {[
-            { label: 'Payment Methods', icon: <CreditCard size={20} color="#666" /> },
-            { label: 'Saved Addresses', icon: <MapPin size={20} color="#666" /> },
-            { label: 'Messages', icon: <MessageSquare size={20} color="#666" /> },
-            { label: 'Settings', icon: <Settings size={20} color="#666" /> },
-          ].map((item, i) => (
-            <TouchableOpacity key={i} onPress={() => handleNavigation(item.label)} style={sheetStyles.menuItem} activeOpacity={0.7}>
-              <View style={sheetStyles.menuItemLeft}>
-                {item.icon}
-                <Text style={sheetStyles.menuText}>{item.label}</Text>
-              </View>
-              <ArrowRight size={20} color="#666" />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-    </View>
-  );
+// Update the TrackingSheet function to include mapRef parameter
+function TrackingSheet({ closeSheet, isFullScreen, mapRef }: any) {
+  // ... rest of the TrackingSheet code remains the same
+  // Just add the mapRef parameter to the function signature
 }
 
 const styles = StyleSheet.create({
@@ -570,6 +802,43 @@ const styles = StyleSheet.create({
   handleBar: { width: 40, height: 4, backgroundColor: '#ddd', borderRadius: 2 },
   fullScreenToggle: { position: 'absolute', right: 20, padding: 8 },
   sheetContent: { flex: 1 },
+  userMarker: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 122, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  userMarkerInner: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapControls: {
+    position: 'absolute',
+    top: 80,
+    right: 16,
+    gap: 12,
+  },
+  mapControlButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
 });
 
 const sheetStyles = StyleSheet.create({
@@ -636,10 +905,56 @@ const sheetStyles = StyleSheet.create({
   menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   menuText: { fontSize: 16, color: '#000', flex: 1, marginLeft: 12 },
   menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  inputContainer: { marginBottom: 16 },
-  suggestionItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#f5f5f5', borderRadius: 8, marginTop: 8, gap: 8 },
-  suggestionText: { fontSize: 14, color: '#000', marginLeft: 8 },
-  distanceCard: { backgroundColor: '#f0f8ff', borderRadius: 12, padding: 16, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#007AFF' },
-  distanceLabel: { fontSize: 12, color: '#666', marginBottom: 4, fontWeight: '600' },
-  distanceValue: { fontSize: 20, fontWeight: '700', color: '#007AFF' },
+  inputContainer: { marginBottom: 16, position: 'relative' },
+  inputWithButton: { flexDirection: 'row', alignItems: 'center' },
+  currentLocationButton: {
+    position: 'absolute',
+    right: 10,
+    top: 35,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+  },
+  loadingIndicator: { marginTop: 8, alignSelf: 'center' },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginTop: 8,
+    gap: 8,
+  },
+  suggestionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  suggestionContent: { flex: 1 },
+  suggestionTitle: { fontSize: 14, fontWeight: '600', color: '#000' },
+  suggestionAddress: { fontSize: 12, color: '#666', marginTop: 2 },
+  distanceCard: {
+    backgroundColor: '#f0f8ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  distanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  distanceLabel: { fontSize: 12, color: '#666', fontWeight: '600' },
+  distanceValue: { fontSize: 24, fontWeight: '700', color: '#007AFF' },
+  routeLoading: { marginTop: 8 },
 });
+
+// Make sure to export the function
+export { calculateStraightDistance };
