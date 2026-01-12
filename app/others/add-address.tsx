@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity,  Switch,  Alert,} from 'react-native';
+import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity,  Switch,  Alert, SafeAreaView} from 'react-native';
 import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { ArrowLeft,} from 'lucide-react-native';
@@ -28,7 +28,7 @@ export default function AddAddressPage({ onBack }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={[ styles.header,
               styles.safeArea,
               Platform.OS === 'android' && styles.safeAreaAndroid,
@@ -102,7 +102,7 @@ export default function AddAddressPage({ onBack }: any) {
           style={styles.submitButton}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

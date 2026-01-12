@@ -1,40 +1,9 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  TextInput,
-  Alert,
-  FlatList,
-} from 'react-native';
+import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity,  Switch, Alert, SafeAreaView} from 'react-native';
 import { Card, Header, Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import {
-  ChevronRight,
-  Bell,
-  Lock,
-  Globe,
-  HelpCircle,
-  LogOut,
-  Edit2,
-  Star,
-  MapPin,
-  Clock,
-  Phone,
-  Mail,
-  User,
-  ArrowLeft,
-  X,
-  Plus,
-  Trash2,
-  Check,
-  CreditCard,
-  DollarSign,
-} from 'lucide-react-native';
+import { ChevronRight,  Bell,  Lock,  Globe,  HelpCircle,  MapPin,  Mail,  User, CreditCard } from 'lucide-react-native';
 import { Platform, StatusBar } from 'react-native';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
@@ -62,7 +31,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <View style={[styles.container, styles.safeArea,
+    <SafeAreaView style={[styles.container, styles.safeArea,
               Platform.OS === 'android' && styles.safeAreaAndroid,
               Platform.OS === 'ios' && styles.safeAreaIos,
             ]}>
@@ -193,7 +162,7 @@ export default function SettingsPage() {
           style={styles.signOutButton}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

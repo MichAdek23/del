@@ -1,40 +1,9 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  TextInput,
-  Alert,
-  FlatList,
-} from 'react-native';
-import { Card, Header, Button, Input } from '@/components';
+import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import {
-  ChevronRight,
-  Bell,
-  Lock,
-  Globe,
-  HelpCircle,
-  LogOut,
-  Edit2,
-  Star,
-  MapPin,
-  Clock,
-  Phone,
-  Mail,
-  User,
-  ArrowLeft,
-  X,
-  Plus,
-  Trash2,
-  Check,
-  CreditCard,
-  DollarSign,
-} from 'lucide-react-native';
+import { Edit2, ArrowLeft } from 'lucide-react-native';
 
 // ==================== PROFILE EDIT PAGE ====================
 export default function ProfileEditPage() {

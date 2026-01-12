@@ -1,40 +1,9 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  TextInput,
-  Alert,
-  FlatList,
-} from 'react-native';
+import {  StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity, Alert,  SafeAreaView} from 'react-native';
 import { Card, Header, Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import {
-  ChevronRight,
-  Bell,
-  Lock,
-  Globe,
-  HelpCircle,
-  LogOut,
-  Edit2,
-  Star,
-  MapPin,
-  Clock,
-  Phone,
-  Mail,
-  User,
-  ArrowLeft,
-  X,
-  Plus,
-  Trash2,
-  Check,
-  CreditCard,
-  DollarSign,
-} from 'lucide-react-native';
+import { Edit2, MapPin, ArrowLeft, Trash2,  Check } from 'lucide-react-native';
 
 // ==================== SAVED ADDRESSES PAGE ====================
 export default function SavedAddressesPage() {
@@ -74,7 +43,7 @@ export default function SavedAddressesPage() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={colors.text} />
@@ -122,7 +91,7 @@ export default function SavedAddressesPage() {
           style={styles.addButton}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

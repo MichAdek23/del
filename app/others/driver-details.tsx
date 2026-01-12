@@ -3,7 +3,7 @@
 
 
 import React, { useState } from 'react';
-import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity,} from 'react-native';
+import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity, SafeAreaView} from 'react-native';
 import { Card } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
@@ -30,7 +30,7 @@ export default function DriverDetailsPage() {
   });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={colors.text} />
@@ -94,7 +94,7 @@ export default function DriverDetailsPage() {
           <DetailRow label="Avg Response Time" value={driver.responseTime} />
         </Card>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

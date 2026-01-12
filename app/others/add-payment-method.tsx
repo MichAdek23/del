@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {  StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity, Alert } from 'react-native';
+import {  StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity, Alert, SafeAreaView } from 'react-native';
 import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { ArrowLeft } from 'lucide-react-native';
@@ -31,7 +31,7 @@ export default function AddPaymentMethodPage({ onBack }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}>
           <ArrowLeft size={24} color={colors.text} />
@@ -90,7 +90,7 @@ export default function AddPaymentMethodPage({ onBack }: any) {
           style={styles.submitButton}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
