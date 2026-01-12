@@ -727,26 +727,50 @@ function ScheduleSheet({ closeSheet, isFullScreen }: any) {
 }
 
 function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
+  const handleNavigation = (routeName: string) => {
+    closeSheet();
+    switch(routeName) {
+      case 'Payment Methods': router.push('/others/payment-methods'); break;
+      case 'Saved Addresses': router.push('/others/saved-addresses'); break;
+      case 'Messages': router.push('/others/messages'); break;
+      case 'Settings': router.push('/others/settings'); break;
+      default: router.push('/others/settings');
+    }
+  };
+
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
       <View style={sheetStyles.header}>
-        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>Profile</Text>
+        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>My Profile</Text>
         <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
       </View>
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <View style={sheetStyles.profileHeader}>
-          <View style={sheetStyles.profileAvatar}><Text style={sheetStyles.avatarText}>{(user?.name || 'U').charAt(0)}</Text></View>
-          <Text style={sheetStyles.profileName}>{user?.name || 'User'}</Text>
-          <Text style={sheetStyles.profileEmail}>{user?.email || 'you@example.com'}</Text>
+          <View style={sheetStyles.profileAvatar}><Text style={sheetStyles.avatarText}>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</Text></View>
+          <Text style={sheetStyles.profileName}>{user.firstName} {user.lastName}</Text>
+          <Text style={sheetStyles.profileEmail}>{user.email}</Text>
         </View>
         <View style={sheetStyles.menuSection}>
-          <TouchableOpacity style={sheetStyles.menuItem}><Text style={sheetStyles.menuText}>Settings</Text><Settings size={18} color="#666" /></TouchableOpacity>
-          <TouchableOpacity style={sheetStyles.menuItem}><Text style={sheetStyles.menuText}>Payments</Text><CreditCard size={18} color="#666" /></TouchableOpacity>
+          {[
+            { label: 'Payment Methods', icon: <CreditCard size={20} color="#666" /> },
+            { label: 'Saved Addresses', icon: <MapPin size={20} color="#666" /> },
+            { label: 'Messages', icon: <MessageSquare size={20} color="#666" /> },
+            { label: 'Settings', icon: <Settings size={20} color="#666" /> },
+          ].map((item, i) => (
+            <TouchableOpacity key={i} onPress={() => handleNavigation(item.label)} style={sheetStyles.menuItem} activeOpacity={0.7}>
+              <View style={sheetStyles.menuItemLeft}>
+                {item.icon}
+                <Text style={sheetStyles.menuText}>{item.label}</Text>
+              </View>
+              <ArrowRight size={20} color="#666" />
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     </View>
   );
 }
+
 
 /* Styles (complete) */
 const styles = StyleSheet.create({
