@@ -21,7 +21,7 @@ export default function ProfileEditPage() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color={colors.text} />
@@ -80,7 +80,7 @@ export default function ProfileEditPage() {
           style={styles.submitButton}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

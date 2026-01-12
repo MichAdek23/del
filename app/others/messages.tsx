@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import {  StyleSheet , View , Text, TouchableOpacity , FlatList, SafeAreaView,} from 'react-native';
 import { Header} from '@/components';
 import { colors } from '@/constants';
+import { ArrowLeft } from 'lucide-react-native';
+import { router } from 'expo-router';
+import ChatDetailPage from './chat-detail';
+
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState([
@@ -48,6 +52,9 @@ export default function MessagesPage() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TouchableOpacity onPress={() => router.back()}>
+        <ArrowLeft size={24} color={colors.text} />
+      </TouchableOpacity>
       <Header title="Messages" />
       <FlatList
         data={messages}

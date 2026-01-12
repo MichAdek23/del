@@ -3,8 +3,8 @@ import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity,  Switch, Aler
 import { Card, Header, Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import { ChevronRight,  Bell,  Lock,  Globe,  HelpCircle,  MapPin,  Mail,  User, CreditCard } from 'lucide-react-native';
-import { Platform, StatusBar } from 'react-native';
+import { ChevronRight,  Bell,  Lock,  Globe,  HelpCircle,  MapPin,  Mail,  User, CreditCard,ArrowLeft } from 'lucide-react-native';
+import { Platform, StatusBar, } from 'react-native';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
 
@@ -35,6 +35,9 @@ export default function SettingsPage() {
               Platform.OS === 'android' && styles.safeAreaAndroid,
               Platform.OS === 'ios' && styles.safeAreaIos,
             ]}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <ArrowLeft size={24} color={colors.text} />
+        </TouchableOpacity>
       <Header title="Settings" />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Account Section */}
@@ -42,7 +45,7 @@ export default function SettingsPage() {
         <Card style={styles.settingCard}>
           <TouchableOpacity
             style={styles.settingItem}
-            onPress={() => router.push('/consumer/profile-edit')}
+            onPress={() => router.push('/others/profile-edit')}
           >
             <View style={styles.settingLeft}>
               <User size={20} color={colors.primary} />
@@ -57,7 +60,7 @@ export default function SettingsPage() {
         <Card style={styles.settingCard}>
           <TouchableOpacity
             style={styles.settingItem}
-            onPress={() => router.push('/consumer/payment-methods')}
+            onPress={() => router.push('/others/payment-methods')}
           >
             <View style={styles.settingLeft}>
               <CreditCard size={20} color={colors.primary} />
@@ -68,7 +71,7 @@ export default function SettingsPage() {
           <View style={styles.divider} />
           <TouchableOpacity
             style={styles.settingItem}
-            onPress={() => router.push('/consumer/saved-addresses')}
+            onPress={() => router.push('/others/saved-addresses')}
           >
             <View style={styles.settingLeft}>
               <MapPin size={20} color={colors.primary} />
@@ -153,14 +156,6 @@ export default function SettingsPage() {
             <ChevronRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </Card>
-
-        {/* Sign Out */}
-        <Button
-          title="Sign Out"
-          onPress={handleLogout}
-          variant="outline"
-          style={styles.signOutButton}
-        />
       </ScrollView>
     </SafeAreaView>
   );

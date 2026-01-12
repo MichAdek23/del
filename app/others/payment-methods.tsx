@@ -4,6 +4,7 @@ import { Card, Button } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
 import { ArrowLeft,  X,  Plus,  Trash2,  Check,  CreditCard } from 'lucide-react-native';
+import AddPaymentMethodPage from './add-payment-method';
 
 // ==================== PAYMENT METHODS PAGE ====================
 export default function PaymentMethodsPage() {
@@ -93,7 +94,6 @@ export default function PaymentMethodsPage() {
         <Button
           title="Add Payment Method"
           onPress={() => setShowAddPayment(true)}
-          variant="outline"
           style={styles.addButton}
         />
       </ScrollView>

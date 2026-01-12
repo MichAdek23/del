@@ -463,7 +463,7 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
           value={formData.from}
           onChangeText={(text) => setFormData({...formData, from: text})}
           icon={<MapPin size={20} color="#666" />}
-          variant="light"
+          
         />
         
         <Input
@@ -472,7 +472,7 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
           value={formData.to}
           onChangeText={(text) => setFormData({...formData, to: text})}
           icon={<MapPin size={20} color="#666" />}
-          variant="light"
+          
         />
         
         <Input
@@ -481,7 +481,7 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
           value={formData.packageType}
           onChangeText={(text) => setFormData({...formData, packageType: text})}
           icon={<Package size={20} color="#666" />}
-          variant="light"
+          
         />
         
         <Input
@@ -491,7 +491,7 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
           onChangeText={(text) => setFormData({...formData, description: text})}
           multiline
           numberOfLines={3}
-          variant="light"
+          
         />
         
         <Input
@@ -500,14 +500,13 @@ function NewDeliverySheet({ closeSheet, isFullScreen }: any) {
           value={formData.weight}
           onChangeText={(text) => setFormData({...formData, weight: text})}
           keyboardType="numeric"
-          variant="light"
+          
         />
         
         <View style={sheetStyles.buttonRow}>
           <Button
             title="Cancel"
             onPress={closeSheet}
-            variant="outline"
             style={sheetStyles.cancelButton}
           />
           <Button
@@ -542,7 +541,7 @@ function TrackingSheet({ closeSheet, isFullScreen }: any) {
           value={trackingNumber}
           onChangeText={setTrackingNumber}
           icon={<Package size={20} color="#666" />}
-          variant="light"
+          
         />
         
         <Button
@@ -633,14 +632,14 @@ function ScheduleSheet({ closeSheet, isFullScreen }: any) {
           label="Pickup Date & Time"
           placeholder="Select date and time"
           icon={<Calendar size={20} color="#666" />}
-          variant="light"
+          
         />
         
         <Input
           label="Recipient Availability"
           placeholder="e.g., 9 AM - 5 PM"
           icon={<Clock size={20} color="#666" />}
-          variant="light"
+          
         />
         
         <View style={sheetStyles.scheduleOptions}>
@@ -693,6 +692,16 @@ function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
     },
   ];
 
+  const handleMenuPress = (href: string) => {
+    closeSheet();
+    router.push(href);
+  };
+
+  const handleSignOut = () => {
+    closeSheet();
+    router.replace('/auth/login');
+  };
+
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
       <View style={sheetStyles.header}>
@@ -718,34 +727,17 @@ function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
         
         <View style={sheetStyles.menuSection}>
           {menuItems.map((item, index) => (
-            <Link 
+            <TouchableOpacity 
               key={index} 
-              href={item.href}
-              asChild
+              style={sheetStyles.menuItem}
+              onPress={() => handleMenuPress(item.href)}
             >
-              <TouchableOpacity 
-                style={sheetStyles.menuItem}
-                onPress={closeSheet}
-              >
-                {item.icon}
-                <Text style={sheetStyles.menuText}>{item.label}</Text>
-                <ArrowRight size={20} color="#666" />
-              </TouchableOpacity>
-            </Link>
+              {item.icon}
+              <Text style={sheetStyles.menuText}>{item.label}</Text>
+              <ArrowRight size={20} color="#666" />
+            </TouchableOpacity>
           ))}
         </View>
-        
-        <Link href="/auth/login" asChild>
-          <Button
-            title="Sign Out"
-            onPress={() => {
-              closeSheet();
-              router.replace('/auth/login');
-            }}
-            variant="outline"
-            style={sheetStyles.signOutButton}
-          />
-        </Link>
       </ScrollView>
     </View>
   );

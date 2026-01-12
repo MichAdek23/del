@@ -4,6 +4,7 @@ import { Card, Header, Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
 import { Edit2, MapPin, ArrowLeft, Trash2,  Check } from 'lucide-react-native';
+import AddAddressPage from './add-address';
 
 // ==================== SAVED ADDRESSES PAGE ====================
 export default function SavedAddressesPage() {
@@ -87,7 +88,6 @@ export default function SavedAddressesPage() {
         <Button
           title="Add New Address"
           onPress={() => setShowAddAddress(true)}
-          variant="outline"
           style={styles.addButton}
         />
       </ScrollView>

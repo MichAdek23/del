@@ -5,7 +5,6 @@ import { colors } from '@/constants';
 import { ArrowLeft,} from 'lucide-react-native';
 import { Platform, StatusBar } from 'react-native';
 
-const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0;
 
 
 // ==================== ADD ADDRESS PAGE ====================
@@ -29,11 +28,7 @@ export default function AddAddressPage({ onBack }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[ styles.header,
-              styles.safeArea,
-              Platform.OS === 'android' && styles.safeAreaAndroid,
-              Platform.OS === 'ios' && styles.safeAreaIos,
-            ]}>
+      <View style={styles.header}>
 
         <TouchableOpacity onPress={onBack}>
           <ArrowLeft size={24} color={colors.text} />

@@ -9,6 +9,7 @@ import { colors } from '@/constants';
 import { router } from 'expo-router';
 import { Star, Phone, ArrowLeft} from 'lucide-react-native';
 import {DetailRow} from '@/components/DetailRow';
+import { MessageSquare } from 'lucide-react-native';
 
 
 
