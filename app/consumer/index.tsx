@@ -1,34 +1,14 @@
-// ConsumerHome.tsx with Mapbox GL JS via WebView - COMPLETE
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-  Platform,
-  StatusBar,
-  Animated,
-  PanResponder,
-  Alert,
-  ActivityIndicator,
-  Linking,
-  DeviceEventEmitter,
-} from 'react-native';
-
-import WebView from 'react-native-webview';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, Platform, StatusBar, Animated, PanResponder, Alert, ActivityIndicator, Linking } from 'react-native';
+import MapboxGL from '@react-native-mapbox-gl/maps';
 import { Button, Input } from '@/components';
+import { colors } from '@/constants';
 import { router } from 'expo-router';
-import {
-  Plus, MapPin, Package, User, X, Calendar, CreditCard,
-  MessageSquare, Settings, ArrowRight, Phone, Navigation,
-  ChevronUp, ChevronDown, Maximize2, Minimize2, Check, Search,
-  Locate, Target, Route,
-} from 'lucide-react-native';
-
+import { Plus, MapPin, Package, Clock, User, X, Calendar, CreditCard, MessageSquare, Settings, ArrowRight, Star, Phone, Navigation, ChevronUp, ChevronDown, Maximize2, Minimize2, Check, Search, Locate, Target, Route } from 'lucide-react-native';
 import { mockConsumer, mockDeliveries } from '@/constants/mockData';
 import * as Location from 'expo-location';
+
+MapboxGL.setAccessToken('YOUR_MAPBOX_ACCESS_TOKEN_HERE');
 
 const { width, height } = Dimensions.get('window');
 const QUICK_ACTIONS_HEIGHT = height * 0.35;
@@ -36,10 +16,9 @@ const MINIMIZED_HEIGHT = 70;
 const SHEET_HALF_HEIGHT = Platform.OS === 'ios' ? height * 0.5 : height * 0.55;
 const SHEET_FULL_HEIGHT = Platform.OS === 'ios' ? height * 0.85 : height * 0.9;
 
-const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoibWljaGFlZGsyMyIsImEiOiJjbWlxNzBtYTEwazU1M2ZwcTZma2tmb2lvIn0.6-HyhIEjrxIeCSEqALU9EQ';
-
 export default function ConsumerHome() {
-  const webViewRef = useRef<WebView>(null);
+  const mapRef = useRef<MapboxGL.MapView>(null);
+  const cameraRef = useRef<MapboxGL.Camera>(null);
   const [user] = useState(mockConsumer);
   const [activeSheet, setActiveSheet] = useState<any>(null);
   const [sheetAnimation] = useState(new Animated.Value(height));
@@ -49,44 +28,16 @@ export default function ConsumerHome() {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const quickActionsHeight = useRef(new Animated.Value(MINIMIZED_HEIGHT)).current;
   const quickActionsDragY = useRef(new Animated.Value(0)).current;
-
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [mapRegion, setMapRegion] = useState<any>({
-    latitude: 6.5244,
-    longitude: 3.3792,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
+  const activeDeliveries = mockDeliveries.filter((d) => d.status !== 'delivered');
+  const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
+  const [mapRegion, setMapRegion] = useState<any>({ latitude: 6.5244, longitude: 3.3792 });
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
-
-  const [deliveries, setDeliveries] = useState<any[]>(mockDeliveries || []);
-  const drivers = [
-    { id: 'DRV001', name: 'John Smith', phone: '+1 555-234-5678' },
-    { id: 'DRV002', name: 'Mike Johnson', phone: '+1 555-987-6543' },
-    { id: 'DRV003', name: 'Sarah Williams', phone: '+1 555-111-2222' },
-  ];
-
-  const [routeCoords, setRouteCoords] = useState<Array<{ latitude: number; longitude: number }>>([]);
-  const [pickupMarker, setPickupMarker] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [deliveryMarker, setDeliveryMarker] = useState<{ latitude: number; longitude: number } | null>(null);
-
-  const [newDeliveryForm, setNewDeliveryForm] = useState({
-    from: '',
-    to: '',
-    packageType: '',
-    description: '',
-    weight: '',
-    recipientName: '',
-    recipientContact: '',
-    fromLat: 0,
-    fromLng: 0,
-    toLat: 0,
-    toLng: 0,
-  });
-
-  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
-  const [routeDistanceKm, setRouteDistanceKm] = useState<number | null>(null);
+  const [routeCoords, setRouteCoords] = useState<Array<[number, number]>>([]);
+  const [pickupMarker, setPickupMarker] = useState<[number, number] | null>(null);
+  const [deliveryMarker, setDeliveryMarker] = useState<[number, number] | null>(null);
+  const [calculatedDistance, setCalculatedDistance] = useState<number>(0);
   const [selectMode, setSelectMode] = useState<'pickup' | 'delivery' | null>(null);
+  const mapPickHandlerRef = useRef<null | ((payload: any) => void)>(null);
 
   useEffect(() => {
     (async () => {
@@ -96,18 +47,12 @@ export default function ConsumerHome() {
         setIsLoadingLocation(false);
         return;
       }
-
       try {
         const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         const { latitude, longitude } = location.coords;
         setUserLocation({ latitude, longitude });
-        setMapRegion({ latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 });
-
-        if (webViewRef.current) {
-          webViewRef.current.injectJavaScript(
-            `window.userLocation = {lat: ${latitude}, lng: ${longitude}}; map.flyTo({center: [${longitude}, ${latitude}], zoom: 14});`
-          );
-        }
+        setMapRegion({ latitude, longitude });
+        cameraRef.current?.setCamera({ centerCoordinate: [longitude, latitude], zoomLevel: 15, animationDuration: 1000 });
       } catch (error) {
         console.error('Error getting location:', error);
       } finally {
@@ -116,42 +61,13 @@ export default function ConsumerHome() {
     })();
   }, []);
 
-  const handleWebViewMessage = async (event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      
-      if (data.type === 'mapLongPress') {
-        const { latitude, longitude, address } = data.payload;
-        
-        if (!selectMode) return;
-
-        if (selectMode === 'pickup') {
-          setPickupMarker({ latitude, longitude });
-          setNewDeliveryForm(prev => ({ ...prev, from: address, fromLat: latitude, fromLng: longitude }));
-        } else {
-          setDeliveryMarker({ latitude, longitude });
-          setNewDeliveryForm(prev => ({ ...prev, to: address, toLat: latitude, toLng: longitude }));
-        }
-
-        const a = selectMode === 'pickup' ? { latitude, longitude } : pickupMarker;
-        const b = selectMode === 'delivery' ? { latitude, longitude } : deliveryMarker;
-        if (a && b) {
-          setRouteCoords([{ latitude: a.latitude, longitude: a.longitude }, { latitude: b.latitude, longitude: b.longitude }]);
-          await computeRoadDistanceAndRoute(a.latitude, a.longitude, b.latitude, b.longitude);
-        }
-
-        setSelectMode(null);
-      }
-    } catch (error) {
-      console.error('WebView message error:', error);
-    }
-  };
-
   const focusOnUserLocation = () => {
-    if (userLocation && webViewRef.current) {
-      webViewRef.current.injectJavaScript(
-        `map.flyTo({center: [${userLocation.longitude}, ${userLocation.latitude}], zoom: 14});`
-      );
+    if (userLocation) {
+      cameraRef.current?.setCamera({
+        centerCoordinate: [userLocation.longitude, userLocation.latitude],
+        zoomLevel: 15,
+        animationDuration: 1000,
+      });
     }
   };
 
@@ -160,7 +76,7 @@ export default function ConsumerHome() {
     onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 10,
     onPanResponderMove: (_, g) => panY.setValue(g.dy),
     onPanResponderRelease: (_, g) => {
-      if (g.dy > 50) (isSheetFullScreen ? minimizeToHalfScreen() : closeSheet());
+      if (g.dy > 50) isSheetFullScreen ? minimizeToHalfScreen() : closeSheet();
       else if (g.dy < -50) !isSheetFullScreen && expandToFullScreen();
       else Animated.spring(panY, { toValue: 0, useNativeDriver: true }).start();
     },
@@ -171,11 +87,13 @@ export default function ConsumerHome() {
     onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: () => quickActionsDragY.setValue(0),
     onPanResponderMove: (_, g) => {
-      if ((isQuickActionsOpen && g.dy > 0) || (!isQuickActionsOpen && g.dy < 0)) quickActionsDragY.setValue(g.dy);
+      if ((isQuickActionsOpen && g.dy > 0) || (!isQuickActionsOpen && g.dy < 0)) {
+        quickActionsDragY.setValue(g.dy);
+      }
     },
     onPanResponderRelease: (_, g) => {
       const d = Math.abs(g.dy);
-      if (d > 50 || Math.abs(g.vy) > 0.5) (g.dy < 0 ? openQuickActions() : closeQuickActions());
+      if (d > 50 || Math.abs(g.vy) > 0.5) g.dy < 0 ? openQuickActions() : closeQuickActions();
       else isQuickActionsOpen ? openQuickActions() : closeQuickActions();
       quickActionsDragY.setValue(0);
     },
@@ -193,9 +111,16 @@ export default function ConsumerHome() {
     Animated.spring(sheetAnimation, { toValue: height - SHEET_HALF_HEIGHT, useNativeDriver: true, tension: 60, friction: 7 }).start(() => panY.setValue(0));
   };
 
-  const toggleSheetFullScreen = () => (isSheetFullScreen ? minimizeToHalfScreen() : expandToFullScreen());
-  const openQuickActions = () => { setIsQuickActionsOpen(true); Animated.spring(quickActionsHeight, { toValue: QUICK_ACTIONS_HEIGHT, useNativeDriver: false, tension: 50, friction: 8 }).start(); };
-  const closeQuickActions = () => { setIsQuickActionsOpen(false); Animated.spring(quickActionsHeight, { toValue: MINIMIZED_HEIGHT, useNativeDriver: false, tension: 50, friction: 8 }).start(); };
+  const toggleSheetFullScreen = () => isSheetFullScreen ? minimizeToHalfScreen() : expandToFullScreen();
+  const openQuickActions = () => {
+    setIsQuickActionsOpen(true);
+    Animated.spring(quickActionsHeight, { toValue: QUICK_ACTIONS_HEIGHT, useNativeDriver: false, tension: 50, friction: 8 }).start();
+  };
+
+  const closeQuickActions = () => {
+    setIsQuickActionsOpen(false);
+    Animated.spring(quickActionsHeight, { toValue: MINIMIZED_HEIGHT, useNativeDriver: false, tension: 50, friction: 8 }).start();
+  };
 
   const openSheet = (name: string) => {
     setActiveSheet(name);
@@ -213,136 +138,59 @@ export default function ConsumerHome() {
     });
   };
 
-  async function computeRoadDistanceAndRoute(fromLat: number, fromLng: number, toLat: number, toLng: number) {
-    setIsCalculatingRoute(true);
-    setRouteDistanceKm(null);
+  const registerMapPickHandler = (fn: ((payload: any) => void) | null) => {
+    mapPickHandlerRef.current = fn;
+  };
 
+  const handleMapLongPress = async (e: any) => {
+    if (!selectMode) return;
+    const { longitude, latitude } = e.geometry.coordinates;
+    let address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
     try {
-      const coordsStr = `${fromLng},${fromLat};${toLng},${toLat}`;
-      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsStr}?geometries=geojson&overview=full&annotations=distance&access_token=${MAPBOX_ACCESS_TOKEN}`;
-
-      const resp = await fetch(url);
-      const json = await resp.json();
-
-      if (json?.routes?.[0]) {
-        const route = json.routes[0];
-        const distKm = parseFloat((route.distance / 1000).toFixed(2));
-        const coords = (route.geometry?.coordinates || []).map((c: number[]) => ({ latitude: c[1], longitude: c[0] }));
-        
-        if (coords.length > 0) setRouteCoords(coords);
-        setRouteDistanceKm(distKm);
-
-        if (webViewRef.current) {
-          webViewRef.current.injectJavaScript(
-            `updateRoute(${JSON.stringify(route.geometry.coordinates)});`
-          );
-        }
-
-        setIsCalculatingRoute(false);
-        return distKm;
-      } else {
-        const straight = calculateStraightDistance(fromLat, fromLng, toLat, toLng);
-        setRouteDistanceKm(straight);
-        setIsCalculatingRoute(false);
-        return straight;
+      const rev = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (rev && rev.length > 0) {
+        const p = rev[0];
+        const namePart = p.name ? p.name : '';
+        const streetPart = p.street ? `, ${p.street}` : '';
+        const cityPart = p.city ? `, ${p.city}` : '';
+        address = `${namePart}${streetPart}${cityPart}`.trim();
       }
     } catch (err) {
-      console.warn('Route calculation failed', err);
-      const straight = calculateStraightDistance(fromLat, fromLng, toLat, toLng);
-      setRouteDistanceKm(straight);
-      setIsCalculatingRoute(false);
-      return straight;
-    }
-  }
-
-  const generateTrackingId = () => `DEL${Date.now().toString(36).toUpperCase().slice(0, 8)}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-
-  const handleCreateDelivery = async () => {
-    const f = newDeliveryForm;
-    if (!f.from || !f.to || !f.recipientName || !f.recipientContact || !f.fromLat || !f.toLat) {
-      Alert.alert('Error', 'Please fill required fields and pick both locations.');
-      return;
+      console.warn('Reverse geocode failed', err);
     }
 
-    setIsCalculatingRoute(true);
-    const distanceKm = await computeRoadDistanceAndRoute(f.fromLat, f.fromLng, f.toLat, f.toLng);
+    mapPickHandlerRef.current && mapPickHandlerRef.current({ type: selectMode, latitude, longitude, address });
 
-    const assigned = drivers[Math.floor(Math.random() * drivers.length)];
-    const trackingId = generateTrackingId();
-    const newDelivery = {
-      id: trackingId,
-      title: f.packageType || 'Delivery',
-      from: f.from,
-      to: f.to,
-      fromLat: f.fromLat,
-      fromLng: f.fromLng,
-      toLat: f.toLat,
-      toLng: f.toLng,
-      recipientName: f.recipientName,
-      recipientContact: f.recipientContact,
-      description: f.description,
-      weight: f.weight,
-      status: 'assigned',
-      distanceKm,
-      assignedDriver: assigned,
-      createdAt: new Date().toISOString(),
-    };
+    if (selectMode === 'pickup') setPickupMarker([longitude, latitude]);
+    else setDeliveryMarker([longitude, latitude]);
 
-    setDeliveries(prev => [newDelivery, ...prev]);
+    const a = selectMode === 'pickup' ? [longitude, latitude] : pickupMarker;
+    const b = selectMode === 'delivery' ? [longitude, latitude] : deliveryMarker;
+    if (a && b) {
+      setRouteCoords([a, b]);
+      const d = calculateStraightDistance(a[1], a[0], b[1], b[0]);
+      setCalculatedDistance(d);
+      mapPickHandlerRef.current && mapPickHandlerRef.current({ type: 'both', distance: d });
+    }
 
-    const msgThread = {
-      id: `${Date.now()}`,
-      driverName: assigned.name,
-      lastMessage: `Driver ${assigned.name} assigned to delivery ${trackingId}. Tap to chat or track.`,
-      timestamp: 'just now',
-      unread: 1,
-      avatar: assigned.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
-      deliveryId: trackingId,
-    };
+    setSelectMode(null);
+  };
 
-    (global as any).MESSAGES = (global as any).MESSAGES || [];
-    (global as any).MESSAGES.unshift(msgThread);
-    DeviceEventEmitter.emit('newMessage', msgThread);
-
-    setNewDeliveryForm({
-      from: '', to: '', packageType: '', description: '', weight: '',
-      recipientName: '', recipientContact: '', fromLat: 0, fromLng: 0, toLat: 0, toLng: 0,
-    });
-    setPickupMarker(null);
-    setDeliveryMarker(null);
-    setRouteCoords([]);
-    setRouteDistanceKm(null);
-    setIsCalculatingRoute(false);
-
-    Alert.alert('Delivery Created', `${trackingId} was created and assigned to ${assigned.name}.`);
-    closeSheet();
+  const onRouteUpdateFromSheet = (payload: { routeCoords?: any[], distance?: number, from?: {lat:number,lng:number}, to?: {lat:number,lng:number} }) => {
+    if (payload.routeCoords) setRouteCoords(payload.routeCoords);
+    if (payload.from) setPickupMarker([payload.from.lng, payload.from.lat]);
+    if (payload.to) setDeliveryMarker([payload.to.lng, payload.to.lat]);
+    if (typeof payload.distance === 'number') setCalculatedDistance(payload.distance);
   };
 
   const renderSheetContent = () => {
     switch (activeSheet) {
-      case 'newDelivery':
-        return <NewDeliverySheet
-          closeSheet={closeSheet}
-          isFullScreen={isSheetFullScreen}
-          webViewRef={webViewRef}
-          userLocation={userLocation}
-          form={newDeliveryForm}
-          setForm={setNewDeliveryForm}
-          setSelectMode={setSelectMode}
-          handleCreateDelivery={handleCreateDelivery}
-          isCalculatingRoute={isCalculatingRoute}
-          routeDistanceKm={routeDistanceKm}
-        />;
-      case 'tracking':
-        return <TrackingSheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} webViewRef={webViewRef} deliveries={deliveries} />;
-      case 'packages':
-        return <PackagesSheet closeSheet={closeSheet} deliveries={deliveries} isFullScreen={isSheetFullScreen} />;
-      case 'schedule':
-        return <ScheduleSheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} />;
-      case 'profile':
-        return <ProfileSheet closeSheet={closeSheet} user={user} isFullScreen={isSheetFullScreen} />;
-      default:
-        return null;
+      case 'newDelivery': return <NewDeliverySheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} cameraRef={cameraRef} userLocation={userLocation} onRouteUpdate={onRouteUpdateFromSheet} setSelectMode={setSelectMode} registerMapPickHandler={registerMapPickHandler} />;
+      case 'tracking': return <TrackingSheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} />;
+      case 'packages': return <PackagesSheet closeSheet={closeSheet} deliveries={activeDeliveries} isFullScreen={isSheetFullScreen} />;
+      case 'schedule': return <ScheduleSheet closeSheet={closeSheet} isFullScreen={isSheetFullScreen} />;
+      case 'profile': return <ProfileSheet closeSheet={closeSheet} user={user} isFullScreen={isSheetFullScreen} />;
+      default: return null;
     }
   };
 
@@ -352,160 +200,92 @@ export default function ConsumerHome() {
     const daddr = `${toLat},${toLng}`;
     if (Platform.OS === 'ios') {
       const url = `http://maps.apple.com/?saddr=${encodeURIComponent(saddr)}&daddr=${encodeURIComponent(daddr)}&dirflg=d`;
-      try { await Linking.openURL(url); } catch (err) { console.warn('Open Apple Maps failed', err); }
+      try { await Linking.openURL(url); } catch (err) { console.warn(err); }
     } else {
       const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(saddr)}&destination=${encodeURIComponent(daddr)}&travelmode=driving`;
-      try { await Linking.openURL(url); } catch (err) { console.warn('Open Google Maps failed', err); }
+      try { await Linking.openURL(url); } catch (err) { console.warn(err); }
     }
   };
-
-  const mapHTML = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset='utf-8' />
-      <title>Mapbox GL</title>
-      <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-      <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
-      <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
-      <style>
-        * { margin: 0; padding: 0; }
-        body { overflow: hidden; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-      </style>
-    </head>
-    <body>
-      <div id='map'></div>
-      <script>
-        mapboxgl.accessToken = '${MAPBOX_ACCESS_TOKEN}';
-        const map = new mapboxgl.Map({
-          container: 'map',
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: [3.3792, 6.5244],
-          zoom: 12,
-        });
-
-        window.userLocation = null;
-        let pickupMarker = null;
-        let deliveryMarker = null;
-        let routeSource = null;
-        let lastTouchTime = 0;
-
-        map.on('load', () => {
-          console.log('Map loaded');
-        });
-
-        map.on('contextmenu', (e) => {
-          e.preventDefault();
-          const { lng, lat } = e.lngLat;
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'mapLongPress',
-            payload: { latitude: lat, longitude: lng, address: \`\${lat.toFixed(5)}, \${lng.toFixed(5)}\` }
-          }));
-        });
-
-        document.addEventListener('touchstart', (e) => {
-          lastTouchTime = Date.now();
-        });
-
-        document.addEventListener('touchend', (e) => {
-          if (Date.now() - lastTouchTime > 500) {
-            const touch = e.changedTouches[0];
-            if (touch) {
-              const canvas = map.getCanvas();
-              const rect = canvas.getBoundingClientRect();
-              const x = touch.clientX - rect.left;
-              const y = touch.clientY - rect.top;
-              
-              const { lng, lat } = map.unproject([x, y]);
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'mapLongPress',
-                payload: { latitude: lat, longitude: lng, address: \`\${lat.toFixed(5)}, \${lng.toFixed(5)}\` }
-              }));
-            }
-          }
-        });
-
-        window.updateRoute = (coordinates) => {
-          if (!routeSource) {
-            map.addSource('route', { 
-              type: 'geojson', 
-              data: { 
-                type: 'Feature', 
-                geometry: { type: 'LineString', coordinates: [] } 
-              } 
-            });
-            map.addLayer({ 
-              id: 'route', 
-              type: 'line', 
-              source: 'route', 
-              layout: { 'line-join': 'round', 'line-cap': 'round' }, 
-              paint: { 'line-color': '#007AFF', 'line-width': 4 } 
-            });
-            routeSource = true;
-          }
-          map.getSource('route').setData({ 
-            type: 'Feature', 
-            geometry: { type: 'LineString', coordinates } 
-          });
-        };
-
-        window.addMarker = (lng, lat, type) => {
-          const el = document.createElement('div');
-          el.style.width = '40px';
-          el.style.height = '40px';
-          el.style.borderRadius = '50%';
-          el.style.backgroundColor = type === 'pickup' ? 'rgba(0,122,255,0.2)' : 'rgba(52,199,89,0.15)';
-          el.style.border = \`2px solid \${type === 'pickup' ? '#007AFF' : '#34C759'}\`;
-          el.style.display = 'flex';
-          el.style.alignItems = 'center';
-          el.style.justifyContent = 'center';
-          
-          if (type === 'pickup') {
-            if (pickupMarker) pickupMarker.remove();
-            pickupMarker = new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map);
-          } else {
-            if (deliveryMarker) deliveryMarker.remove();
-            deliveryMarker = new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map);
-          }
-        };
-
-        window.clearMarkers = () => {
-          if (pickupMarker) pickupMarker.remove();
-          if (deliveryMarker) deliveryMarker.remove();
-          pickupMarker = null;
-          deliveryMarker = null;
-        };
-
-        window.clearRoute = () => {
-          if (routeSource && map.getSource('route')) {
-            map.getSource('route').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [] } });
-          }
-        };
-      </script>
-    </body>
-    </html>
-  `;
 
   return (
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" />
       <View style={styles.mapContainer}>
-        <WebView
-          ref={webViewRef}
-          source={{ html: mapHTML }}
-          onMessage={handleWebViewMessage}
+        <MapboxGL.MapView
+          ref={mapRef}
           style={styles.map}
-          scrollEnabled={false}
-          pinchZoomEnabled={true}
-          javaScriptEnabled={true}
-          originWhitelist={['*']}
-        />
+          styleURL={MapboxGL.StyleURL.Street}
+          onLongPress={handleMapLongPress}
+        >
+          <MapboxGL.Camera
+            ref={cameraRef}
+            centerCoordinate={[mapRegion.longitude, mapRegion.latitude]}
+            zoomLevel={15}
+          />
+
+          {userLocation && (
+            <MapboxGL.PointAnnotation
+              id="userLocation"
+              coordinate={[userLocation.longitude, userLocation.latitude]}
+              title="Your Location"
+            >
+              <View style={styles.userMarker}>
+                <View style={styles.userMarkerInner}>
+                  <Locate size={16} color="#fff" />
+                </View>
+              </View>
+            </MapboxGL.PointAnnotation>
+          )}
+
+          {routeCoords.length === 2 && (
+            <MapboxGL.ShapeSource id="routeSource" shape={{ type: 'Feature', geometry: { type: 'LineString', coordinates: routeCoords }, properties: {} }}>
+              <MapboxGL.LineLayer
+                id="routeLine"
+                style={{
+                  lineColor: '#007AFF',
+                  lineWidth: 4,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            </MapboxGL.ShapeSource>
+          )}
+
+          {pickupMarker && (
+            <MapboxGL.PointAnnotation
+              id="pickupMarker"
+              coordinate={pickupMarker}
+              title="Pickup Location"
+            >
+              <View style={[styles.userMarker, { backgroundColor: '#FF9500' }]}>
+                <MapPin size={16} color="#fff" />
+              </View>
+            </MapboxGL.PointAnnotation>
+          )}
+
+          {deliveryMarker && (
+            <MapboxGL.PointAnnotation
+              id="deliveryMarker"
+              coordinate={deliveryMarker}
+              title="Delivery Location"
+            >
+              <View style={[styles.userMarker, { backgroundColor: '#34C759' }]}>
+                <MapPin size={16} color="#fff" />
+              </View>
+            </MapboxGL.PointAnnotation>
+          )}
+        </MapboxGL.MapView>
 
         <View style={styles.mapControls} pointerEvents="box-none">
           <TouchableOpacity style={styles.mapControlButton} onPress={focusOnUserLocation}>
             <Target size={20} color="#007AFF" />
           </TouchableOpacity>
+
+          {pickupMarker && deliveryMarker && (
+            <TouchableOpacity style={[styles.mapControlButton, { marginTop: 10 }]} onPress={() => openNativeMapsDirections(pickupMarker[1], pickupMarker[0], deliveryMarker[1], deliveryMarker[0])}>
+              <Route size={18} color="#007AFF" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -515,8 +295,16 @@ export default function ConsumerHome() {
         </ScrollView>
       </View>
 
-      <Animated.View style={[styles.quickActionsSheet, { height: Animated.add(quickActionsHeight, quickActionsDragY) }]} pointerEvents={isQuickActionsOpen ? 'auto' : 'box-none'}>
-        <TouchableOpacity style={styles.quickActionsToggle} onPress={() => isQuickActionsOpen ? closeQuickActions() : openQuickActions()} activeOpacity={0.8} {...quickActionsPanResponder.panHandlers}>
+      <Animated.View
+        style={[styles.quickActionsSheet, { height: Animated.add(quickActionsHeight, quickActionsDragY) }]}
+        pointerEvents={isQuickActionsOpen ? 'auto' : 'box-none'}
+      >
+        <TouchableOpacity
+          style={styles.quickActionsToggle}
+          onPress={() => isQuickActionsOpen ? closeQuickActions() : openQuickActions()}
+          activeOpacity={0.8}
+          {...quickActionsPanResponder.panHandlers}
+        >
           <View style={styles.toggleBar} />
           <Text style={styles.toggleText}>Quick Actions</Text>
           {isQuickActionsOpen ? <ChevronDown size={20} color="#666" /> : <ChevronUp size={20} color="#666" />}
@@ -524,11 +312,10 @@ export default function ConsumerHome() {
 
         <Animated.View style={[styles.quickActionsContent, { opacity: quickActionsHeight.interpolate({ inputRange: [MINIMIZED_HEIGHT, MINIMIZED_HEIGHT + 10], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.quickActionsScrollContent}>
-            <TouchableOpacity style={styles.newDeliveryButton} onPress={() => openSheet('newDelivery')} activeOpacity={0.9}>
+            <TouchableOpacity style={styles.newDeliveryButton} onPress={() => openSheet('newDelivery')} activeOpacity={0.8}>
               <Plus size={24} color="#fff" />
               <Text style={styles.newDeliveryText}>New Delivery</Text>
             </TouchableOpacity>
-
             <View style={styles.quickActionRow}>
               {[{ icon: Navigation, label: 'Track', sheet: 'tracking' }, { icon: Package, label: 'Packages', sheet: 'packages' }, { icon: Calendar, label: 'Schedule', sheet: 'schedule' }, { icon: User, label: 'Profile', sheet: 'profile' }].map((item, i) => (
                 <TouchableOpacity key={i} style={styles.quickActionButton} onPress={() => openSheet(item.sheet)} activeOpacity={0.8}>
@@ -542,12 +329,19 @@ export default function ConsumerHome() {
       </Animated.View>
 
       {activeSheet && (
-        <Animated.View pointerEvents="auto" style={[{ opacity: sheetAnimation.interpolate({ inputRange: [height - SHEET_FULL_HEIGHT, height - SHEET_HALF_HEIGHT], outputRange: [1, 0.7], extrapolate: 'clamp' }) }]}>
+        <Animated.View
+          pointerEvents="auto"
+          style={[{ opacity: sheetAnimation.interpolate({ inputRange: [height - SHEET_FULL_HEIGHT, height - SHEET_HALF_HEIGHT], outputRange: [1, 0.7], extrapolate: 'clamp' }) }]}
+        >
           <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={closeSheet} activeOpacity={1} />
         </Animated.View>
       )}
 
-      <Animated.View style={[styles.sheetContainer, { height: sheetHeight, maxHeight: height - MINIMIZED_HEIGHT, transform: [{ translateY: Animated.add(sheetAnimation, Animated.multiply(panY, 0.5)) }] }]} pointerEvents={activeSheet ? 'auto' : 'box-none'} {...sheetPanResponder.panHandlers}>
+      <Animated.View
+        style={[styles.sheetContainer, { height: sheetHeight, maxHeight: height - MINIMIZED_HEIGHT, transform: [{ translateY: Animated.add(sheetAnimation, Animated.multiply(panY, 0.5)) }] }]}
+        pointerEvents={activeSheet ? 'auto' : 'box-none'}
+        {...sheetPanResponder.panHandlers}
+      >
         <View style={styles.sheetHandle}>
           <View style={styles.handleBar} />
           <TouchableOpacity style={styles.fullScreenToggle} onPress={toggleSheetFullScreen}>
@@ -560,88 +354,221 @@ export default function ConsumerHome() {
   );
 }
 
-function NewDeliverySheet({ closeSheet, isFullScreen, webViewRef, userLocation, form, setForm, setSelectMode, handleCreateDelivery, isCalculatingRoute, routeDistanceKm }: any) {
+function NewDeliverySheet({ closeSheet, isFullScreen, cameraRef, userLocation, onRouteUpdate, setSelectMode, registerMapPickHandler }: any) {
+  const [formData, setFormData] = useState({
+    from: '',
+    to: '',
+    packageType: '',
+    description: '',
+    weight: '',
+    recipientName: '',
+    recipientContact: '',
+    fromLat: 0,
+    fromLng: 0,
+    toLat: 0,
+    toLng: 0,
+  });
+  const [deliveryCreated, setDeliveryCreated] = useState(false);
+  const [trackingId, setTrackingId] = useState('');
+  const [distance, setDistance] = useState(0);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+
+  useEffect(() => {
+    registerMapPickHandler && registerMapPickHandler((payload: any) => {
+      if (!payload) return;
+      if (payload.type === 'pickup') {
+        setFormData(prev => {
+          const updated = { ...prev, from: payload.address || `${payload.latitude}, ${payload.longitude}`, fromLat: payload.latitude, fromLng: payload.longitude };
+          onRouteUpdate && onRouteUpdate({ from: { lat: updated.fromLat, lng: updated.fromLng }, routeCoords: (updated.toLat && updated.toLng) ? [[updated.fromLng, updated.fromLat], [updated.toLng, updated.toLat]] : [] });
+          return updated;
+        });
+      } else if (payload.type === 'delivery') {
+        setFormData(prev => {
+          const updated = { ...prev, to: payload.address || `${payload.latitude}, ${payload.longitude}`, toLat: payload.latitude, toLng: payload.longitude };
+          onRouteUpdate && onRouteUpdate({ to: { lat: updated.toLat, lng: updated.toLng }, routeCoords: (updated.fromLat && updated.fromLng) ? [[updated.fromLng, updated.fromLat], [updated.toLng, updated.toLat]] : [] });
+          return updated;
+        });
+      } else if (payload.type === 'both' && typeof payload.distance === 'number') {
+        setDistance(payload.distance);
+      }
+    });
+    return () => registerMapPickHandler && registerMapPickHandler(null);
+  }, []);
+
+  const generateTrackingId = () => `DEL${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+  const handleUseCurrentLocation = () => {
+    if (userLocation) {
+      const lat = userLocation.latitude;
+      const lng = userLocation.longitude;
+      setFormData(prev => {
+        const updated = { ...prev, from: 'Current Location', fromLat: lat, fromLng: lng };
+        onRouteUpdate && onRouteUpdate({ from: { lat, lng }, routeCoords: (updated.toLat && updated.toLng) ? [[lng, lat], [updated.toLng, updated.toLat]] : [] });
+        if (updated.toLat && updated.toLng) {
+          const straight = calculateStraightDistance(lat, lng, updated.toLat, updated.toLng);
+          setDistance(straight);
+          onRouteUpdate && onRouteUpdate({ from: { lat, lng }, to: { lat: updated.toLat, lng: updated.toLng }, distance: straight, routeCoords: [[lng, lat], [updated.toLng, updated.toLat]] });
+        }
+        cameraRef?.current?.setCamera({
+          centerCoordinate: [lng, lat],
+          zoomLevel: 15,
+          animationDuration: 800,
+        });
+        return updated;
+      });
+    } else {
+      Alert.alert('Location', 'User location unavailable');
+    }
+  };
+
+  useEffect(() => {
+    const { fromLat, fromLng, toLat, toLng } = formData;
+    if (fromLat && fromLng && toLat && toLng) {
+      setIsCalculatingRoute(true);
+      const straight = calculateStraightDistance(fromLat, fromLng, toLat, toLng);
+      setDistance(straight);
+      onRouteUpdate && onRouteUpdate({ routeCoords: [[fromLng, fromLat], [toLng, toLat]], distance: straight, from: { lat: fromLat, lng: fromLng }, to: { lat: toLat, lng: toLng } });
+      setIsCalculatingRoute(false);
+    }
+  }, [formData.fromLat, formData.fromLng, formData.toLat, formData.toLng]);
+
+  const handleCreateDelivery = () => {
+    if (!formData.from || !formData.to || !formData.recipientName || !formData.recipientContact) {
+      Alert.alert('Error', 'Please fill in all required fields and select locations');
+      return;
+    }
+    setTrackingId(generateTrackingId());
+    setDeliveryCreated(true);
+  };
+
+  const openNativeMapsDirections = async () => {
+    if (formData.fromLat && formData.fromLng && formData.toLat && formData.toLng) {
+      const saddr = `${formData.fromLat},${formData.fromLng}`;
+      const daddr = `${formData.toLat},${formData.toLng}`;
+      if (Platform.OS === 'ios') {
+        const url = `http://maps.apple.com/?saddr=${encodeURIComponent(saddr)}&daddr=${encodeURIComponent(daddr)}&dirflg=d`;
+        try { await Linking.openURL(url); } catch (err) { console.warn(err); }
+      } else {
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(saddr)}&destination=${encodeURIComponent(daddr)}&travelmode=driving`;
+        try { await Linking.openURL(url); } catch (err) { console.warn(err); }
+      }
+    } else {
+      Alert.alert('Directions', 'Please set both pickup and delivery locations first');
+    }
+  };
+
+  if (deliveryCreated) {
+    return (
+      <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
+        <View style={sheetStyles.header}>
+          <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>Delivery Created</Text>
+          <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
+        </View>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={sheetStyles.successContainer}>
+            <View style={sheetStyles.checkmarkCircle}><Check size={40} color="#fff" /></View>
+            <Text style={sheetStyles.successTitle}>Delivery Request Sent!</Text>
+            <View style={sheetStyles.trackingCard}>
+              <Text style={sheetStyles.trackingLabel}>Tracking Number</Text>
+              <Text style={sheetStyles.trackingNumber}>{trackingId}</Text>
+            </View>
+            <View style={sheetStyles.summaryCard}>
+              <Text style={sheetStyles.summaryTitle}>Delivery Summary</Text>
+              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>From:</Text><Text style={sheetStyles.summaryValue}>{formData.from.split(',')[0]}</Text></View>
+              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>To:</Text><Text style={sheetStyles.summaryValue}>{formData.to.split(',')[0]}</Text></View>
+              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>Distance:</Text><Text style={sheetStyles.summaryValue}>{distance} km</Text></View>
+              <View style={sheetStyles.summaryRow}><Text style={sheetStyles.summaryLabel}>Recipient:</Text><Text style={sheetStyles.summaryValue}>{formData.recipientName}</Text></View>
+            </View>
+            <Button title="Open Directions" onPress={openNativeMapsDirections} variant="primary" style={sheetStyles.submitButton} />
+            <Button title="Done" onPress={closeSheet} variant="outline" style={sheetStyles.submitButton} />
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
       <View style={sheetStyles.header}>
-        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>Create Delivery</Text>
+        <Text style={[sheetStyles.title, isFullScreen && sheetStyles.fullScreenTitle]}>New Delivery</Text>
         <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
       </View>
       <ScrollView showsVerticalScrollIndicator={false} style={isFullScreen && sheetStyles.fullScreenScroll}>
-        <View style={sheetStyles.card}>
-          <Text style={sheetStyles.cardTitle}>Pickup</Text>
-          <Input label="Pickup Address" placeholder="Tap to pick or enter address" value={form.from} onChangeText={(txt: string) => setForm((p: any) => ({ ...p, from: txt }))} icon={<MapPin size={20} color="#666" />} />
-          <View style={sheetStyles.cardRow}>
-            <TouchableOpacity style={sheetStyles.ghostBtn} onPress={() => { setSelectMode('pickup'); Alert.alert('Pick on map', 'Long-press on map to select'); }}>
-              <Text style={sheetStyles.ghostBtnText}>Pick on map</Text>
+        <Text style={sheetStyles.sectionLabel}>Pickup Details</Text>
+        <View style={sheetStyles.inputContainer}>
+          <View style={sheetStyles.inputWithButton}>
+            <Input
+              label="Pickup Address"
+              placeholder="Enter pickup location or pick on map"
+              value={formData.from}
+              onChangeText={(txt: string) => setFormData(prev => ({ ...prev, from: txt }))}
+              icon={<MapPin size={20} color="#666" />}
+            />
+            <TouchableOpacity style={sheetStyles.currentLocationButton} onPress={handleUseCurrentLocation}>
+              <Locate size={18} color="#007AFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={sheetStyles.ghostBtn} onPress={() => {
-              if (userLocation) setForm((p: any) => ({ ...p, from: 'Current location', fromLat: userLocation.latitude, fromLng: userLocation.longitude }));
-            }}>
-              <Locate size={14} color="#007AFF" />
-              <Text style={[sheetStyles.ghostBtnText, { marginLeft: 8 }]}>Use current</Text>
+          </View>
+          <View style={{ marginTop: 8, flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity onPress={() => { setSelectMode('pickup'); Alert.alert('Pick on map', 'Long-press on the map to choose pickup location'); }}>
+              <Text style={{ color: '#007AFF', fontWeight: '700' }}>Pick pickup on map</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={sheetStyles.card}>
-          <Text style={sheetStyles.cardTitle}>Delivery</Text>
-          <Input label="Delivery Address" placeholder="Tap to pick or enter" value={form.to} onChangeText={(txt: string) => setForm((p: any) => ({ ...p, to: txt }))} icon={<MapPin size={20} color="#666" />} />
-          <TouchableOpacity style={sheetStyles.ghostBtn} onPress={() => { setSelectMode('delivery'); Alert.alert('Pick on map', 'Long-press on map to select'); }}>
-            <Text style={sheetStyles.ghostBtnText}>Pick on map</Text>
-          </TouchableOpacity>
+        <Text style={sheetStyles.sectionLabel}>Delivery Details</Text>
+        <View style={sheetStyles.inputContainer}>
+          <Input
+            label="Delivery Address"
+            placeholder="Enter delivery location or pick on map"
+            value={formData.to}
+            onChangeText={(txt: string) => setFormData(prev => ({ ...prev, to: txt }))}
+            icon={<MapPin size={20} color="#666" />}
+          />
+          <View style={{ marginTop: 8, flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity onPress={() => { setSelectMode('delivery'); Alert.alert('Pick on map', 'Long-press on the map to choose delivery location'); }}>
+              <Text style={{ color: '#007AFF', fontWeight: '700' }}>Pick delivery on map</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {(distance > 0 || isCalculatingRoute) && (
+          <View style={sheetStyles.distanceCard}>
+            <View style={sheetStyles.distanceHeader}>
+              <Route size={20} color="#007AFF" />
+              <Text style={sheetStyles.distanceLabel}>Estimated Distance</Text>
+            </View>
+            {isCalculatingRoute ? (
+              <ActivityIndicator size="small" color="#007AFF" style={sheetStyles.routeLoading} />
+            ) : (
+              <Text style={sheetStyles.distanceValue}>{distance} km</Text>
+            )}
+          </View>
+        )}
 
         <View style={sheetStyles.row}>
           <View style={sheetStyles.halfInput}>
-            <Input label="Package Type" placeholder="e.g., Parcel" value={form.packageType} onChangeText={(t: string) => setForm((p: any) => ({ ...p, packageType: t }))} icon={<Package size={20} color="#666" />} />
+            <Input label="Recipient Name" placeholder="Full name" value={formData.recipientName} onChangeText={(t: string) => setFormData(prev => ({ ...prev, recipientName: t }))} icon={<User size={20} color="#666" />} />
           </View>
           <View style={sheetStyles.halfInput}>
-            <Input label="Weight (kg)" placeholder="e.g., 2.5" value={form.weight} onChangeText={(t: string) => setForm((p: any) => ({ ...p, weight: t }))} keyboardType="numeric" />
+            <Input label="Contact Number" placeholder="Phone number" value={formData.recipientContact} onChangeText={(t: string) => setFormData(prev => ({ ...prev, recipientContact: t }))} icon={<Phone size={20} color="#666" />} keyboardType="phone-pad" />
           </View>
         </View>
 
-        <Input label="Recipient Name" placeholder="Full name" value={form.recipientName} onChangeText={(t: string) => setForm((p: any) => ({ ...p, recipientName: t }))} icon={<User size={20} color="#666" />} />
-        <Input label="Recipient Contact" placeholder="Phone number" value={form.recipientContact} onChangeText={(t: string) => setForm((p: any) => ({ ...p, recipientContact: t }))} icon={<Phone size={20} color="#666" />} keyboardType="phone-pad" />
-        <Input label="Description" placeholder="Notes for driver (optional)" value={form.description} onChangeText={(t: string) => setForm((p: any) => ({ ...p, description: t }))} multiline numberOfLines={3} />
-
-        <View style={sheetStyles.routeCard}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={sheetStyles.routeTitle}>Route & Distance</Text>
-            {isCalculatingRoute ? <ActivityIndicator size="small" /> : <Text style={sheetStyles.routeDistance}>{routeDistanceKm !== null ? `${routeDistanceKm} km` : '—'}</Text>}
-          </View>
-          <Text style={sheetStyles.routeSubtitle}>{form.from ? form.from.split(',')[0] : 'Pickup'} → {form.to ? form.to.split(',')[0] : 'Delivery'}</Text>
-        </View>
+        <Text style={sheetStyles.sectionLabel}>Package Information</Text>
+        <Input label="Package Type" placeholder="e.g., Document, Parcel, Food" value={formData.packageType} onChangeText={(t: string) => setFormData(prev => ({ ...prev, packageType: t }))} icon={<Package size={20} color="#666" />} />
+        <Input label="Description" placeholder="Describe your package" value={formData.description} onChangeText={(t: string) => setFormData(prev => ({ ...prev, description: t }))} multiline numberOfLines={3} />
+        <Input label="Weight (kg)" placeholder="Approximate weight" value={formData.weight} onChangeText={(t: string) => setFormData(prev => ({ ...prev, weight: t }))} keyboardType="numeric" />
 
         <View style={sheetStyles.buttonRow}>
-          <Button title="Cancel" onPress={closeSheet} style={sheetStyles.cancelButton} variant="outline" />
-          <Button title="Create Delivery" onPress={handleCreateDelivery} style={sheetStyles.submitButton} variant="primary" disabled={isCalculatingRoute} />
+          <Button title="Cancel" onPress={closeSheet} style={sheetStyles.cancelButton} />
+          <Button title="Create Delivery" onPress={handleCreateDelivery} variant="primary" style={sheetStyles.submitButton} disabled={isCalculatingRoute} />
         </View>
       </ScrollView>
     </View>
   );
 }
 
-function TrackingSheet({ closeSheet, isFullScreen, webViewRef, deliveries }: any) {
-  const [trackingId, setTrackingId] = useState('');
-  const [found, setFound] = useState<any | null>(null);
-
-  const handleTrack = () => {
-    const d = deliveries.find((x: any) => x.id === trackingId.trim());
-    if (!d) {
-      Alert.alert('Not found', 'Tracking ID not found.');
-      setFound(null);
-      return;
-    }
-    setFound(d);
-
-    if (d.fromLat && d.toLat && webViewRef.current) {
-      const midLat = (d.fromLat + d.toLat) / 2;
-      const midLng = (d.fromLng + d.toLng) / 2;
-      webViewRef.current.injectJavaScript(`map.flyTo({center: [${midLng}, ${midLat}], zoom: 11});`);
-    }
-  };
-
+function TrackingSheet({ closeSheet, isFullScreen }: any) {
   return (
     <View style={[sheetStyles.container, isFullScreen && sheetStyles.fullScreenContainer]}>
       <View style={sheetStyles.header}>
@@ -649,16 +576,9 @@ function TrackingSheet({ closeSheet, isFullScreen, webViewRef, deliveries }: any
         <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
       </View>
       <View style={{ padding: 20 }}>
-        <Input label="Tracking Number" placeholder="DEL..." onChangeText={(t: string) => setTrackingId(t)} value={trackingId} icon={<Search size={18} color="#666" />} />
-        <Button title="Track" onPress={handleTrack} style={{ marginTop: 12 }} variant="primary" />
-        {found && (
-          <View style={{ marginTop: 16, padding: 12, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#f0f0f0' }}>
-            <Text style={{ fontWeight: '700', fontSize: 16 }}>{found.title || 'Delivery'}</Text>
-            <Text style={{ color: '#666', marginTop: 6 }}>Status: {found.status}</Text>
-            <Text style={{ color: '#666' }}>Driver: {found.assignedDriver?.name || '—'}</Text>
-            <Text style={{ color: '#666' }}>Distance: {found.distanceKm} km</Text>
-          </View>
-        )}
+        <Text style={{ marginBottom: 12 }}>Enter a tracking number to view status and live location.</Text>
+        <Input label="Tracking Number" placeholder="Tracking ID" onChangeText={() => { }} icon={<Search size={18} color="#666" />} />
+        <Button title="Track" onPress={() => Alert.alert('Tracking', 'Tracking functionality placeholder')} style={{ marginTop: 16 }} />
       </View>
     </View>
   );
@@ -672,22 +592,15 @@ function PackagesSheet({ closeSheet, deliveries, isFullScreen }: any) {
         <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
       </View>
       <ScrollView>
-        {deliveries.length === 0 ? (
-          <View style={{ padding: 20, alignItems: 'center' }}>
-            <Text style={{ color: '#666' }}>No packages yet</Text>
-          </View>
-        ) : (
-          deliveries.map((d: any, idx: number) => (
-            <View key={idx} style={sheetStyles.packageItem}>
-              <View style={sheetStyles.packageIcon}><Package size={20} color="#007AFF" /></View>
-              <View style={sheetStyles.packageInfo}>
-                <Text style={sheetStyles.packageTitle}>{d.title || 'Package'}</Text>
-                <Text style={sheetStyles.packageStatus}>{d.status} • {d.id}</Text>
-              </View>
-              <ArrowRight size={18} color="#666" />
+        {deliveries.map((d: any, idx: number) => (
+          <View key={idx} style={sheetStyles.packageItem}>
+            <View style={sheetStyles.packageIcon}><Package size={20} color="#007AFF" /></View>
+            <View style={sheetStyles.packageInfo}>
+              <Text style={sheetStyles.packageTitle}>{d.title || 'Package'}</Text>
+              <Text style={sheetStyles.packageStatus}>{d.status}</Text>
             </View>
-          ))
-        )}
+          </View>
+        ))}
       </ScrollView>
     </View>
   );
@@ -701,7 +614,7 @@ function ScheduleSheet({ closeSheet, isFullScreen }: any) {
         <TouchableOpacity onPress={closeSheet} style={sheetStyles.closeBtn}><X size={24} color="#666" /></TouchableOpacity>
       </View>
       <View style={{ padding: 20 }}>
-        <Text style={{ color: '#666' }}>Schedule your deliveries coming soon</Text>
+        <Text>Schedule placeholder content.</Text>
       </View>
     </View>
   );
@@ -710,7 +623,7 @@ function ScheduleSheet({ closeSheet, isFullScreen }: any) {
 function ProfileSheet({ closeSheet, user, isFullScreen }: any) {
   const handleNavigation = (routeName: string) => {
     closeSheet();
-    switch (routeName) {
+    switch(routeName) {
       case 'Payment Methods': router.push('/others/payment-methods'); break;
       case 'Saved Addresses': router.push('/others/saved-addresses'); break;
       case 'Messages': router.push('/others/messages'); break;
@@ -756,8 +669,10 @@ function calculateStraightDistance(lat1: number, lng1: number, lat2: number, lng
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return parseFloat((R * c).toFixed(2));
 }
 
@@ -787,6 +702,8 @@ const styles = StyleSheet.create({
   handleBar: { width: 40, height: 4, backgroundColor: '#ddd', borderRadius: 2 },
   fullScreenToggle: { position: 'absolute', right: 20, padding: 8 },
   sheetContent: { flex: 1 },
+  userMarker: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0, 122, 255, 0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#007AFF' },
+  userMarkerInner: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center' },
   mapControls: { position: 'absolute', top: 80, right: 16, gap: 12 },
   mapControlButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
 });
@@ -799,21 +716,32 @@ const sheetStyles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '700', color: '#000' },
   fullScreenTitle: { fontSize: 28 },
   closeBtn: { padding: 8, borderRadius: 20, backgroundColor: '#f5f5f5' },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#f0f0f0' },
-  cardTitle: { fontSize: 13, fontWeight: '700', color: '#333', marginBottom: 8 },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  sectionLabel: { fontSize: 14, fontWeight: '700', color: '#666', marginTop: 16, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
   row: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   halfInput: { flex: 1 },
   buttonRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
   cancelButton: { flex: 1 },
   submitButton: { flex: 2, marginTop: 20 },
-  ghostBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: 'rgba(0,122,255,0.06)' },
-  ghostBtnText: { color: '#007AFF', fontWeight: '700' },
-  routeCard: { marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: '#fbfcff', borderWidth: 1, borderColor: '#eef6ff' },
-  routeTitle: { fontSize: 14, fontWeight: '700', color: '#333' },
-  routeDistance: { fontSize: 14, fontWeight: '700', color: '#007AFF' },
-  routeSubtitle: { color: '#666', marginTop: 6 },
-  packageItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingHorizontal: 4 },
+  successContainer: { alignItems: 'center', paddingVertical: 20 },
+  checkmarkCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center', marginBottom: 20, marginTop: 10 },
+  successTitle: { fontSize: 24, fontWeight: '700', color: '#000', marginBottom: 8, textAlign: 'center' },
+  trackingCard: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 16, marginBottom: 20, width: '100%', alignItems: 'center' },
+  trackingLabel: { fontSize: 12, color: '#666', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  trackingNumber: { fontSize: 24, fontWeight: '700', color: '#007AFF', marginBottom: 12, fontFamily: 'Courier New', letterSpacing: 2 },
+  summaryCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 20, width: '100%', borderWidth: 1, borderColor: '#f0f0f0' },
+  summaryTitle: { fontSize: 16, fontWeight: '700', color: '#000', marginBottom: 16 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  summaryLabel: { fontSize: 13, color: '#666', fontWeight: '500' },
+  summaryValue: { fontSize: 13, fontWeight: '600', color: '#000', flex: 1, textAlign: 'right', paddingLeft: 10 },
+  distanceCard: { backgroundColor: '#f0f8ff', borderRadius: 12, padding: 16, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#007AFF' },
+  distanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  distanceLabel: { fontSize: 12, color: '#666', fontWeight: '600' },
+  distanceValue: { fontSize: 24, fontWeight: '700', color: '#007AFF' },
+  routeLoading: { marginTop: 8 },
+  inputContainer: { marginBottom: 16, position: 'relative' },
+  inputWithButton: { flexDirection: 'row', alignItems: 'center' },
+  currentLocationButton: { position: 'absolute', right: 10, top: 35, padding: 8, borderRadius: 20, backgroundColor: 'rgba(0, 122, 255, 0.1)' },
+  packageItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   packageIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0, 122, 255, 0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   packageInfo: { flex: 1 },
   packageTitle: { fontSize: 16, fontWeight: '600', color: '#000', marginBottom: 4 },
@@ -828,3 +756,5 @@ const sheetStyles = StyleSheet.create({
   menuText: { fontSize: 16, color: '#000', flex: 1, marginLeft: 12 },
   menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
 });
+
+export { calculateStraightDistance };
