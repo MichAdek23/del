@@ -22,6 +22,11 @@ export default function AddPaymentMethodPage({ onBack }: any) {
 
   const handleCardInputChange = (form: any) => {
     setCardForm(form);
+    
+    // Log detected card type
+    if (form.values.type) {
+      console.log('Card Type:', form.values.type);
+    }
   };
 
   const handleAdd = () => {
@@ -42,13 +47,14 @@ export default function AddPaymentMethodPage({ onBack }: any) {
         text: 'OK',
         onPress: () => {
           // Pass the card data back to parent if needed
-          onBack({
+          onBack(          {
             id: Date.now().toString(),
             type: 'card',
             cardName,
             cardNumber: `**** **** **** ${cardValues.number.slice(-4)}`,
             expiryDate: cardValues.expiry,
             cardholderName: cardValues.name,
+            cardType: cardForm.values.type?.toUpperCase() || 'UNKNOWN',
             isDefault: false,
           });
         },
