@@ -1,47 +1,111 @@
 import React, { useState } from 'react';
-import {  StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity, Alert,  SafeAreaView} from 'react-native';
-import { Card, Header, Button, Input } from '@/components';
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  SafeAreaView,
+} from 'react-native';
+import { Card, Button } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import { Edit2, MapPin, ArrowLeft, Trash2,  Check } from 'lucide-react-native';
+import { Edit2, MapPin, ArrowLeft, Trash2, Check } from 'lucide-react-native';
 import AddAddressPage from './add-address';
+
+interface Address {
+  id: string;
+  label: string;
+  address: string;
+  isDefault: boolean;
+}
 
 // ==================== SAVED ADDRESSES PAGE ====================
 export default function SavedAddressesPage() {
-  const [addresses, setAddresses] = useState([
-    {
-      id: '1',
-      label: 'Home',
-      address: '123 Main Street, New York, NY 10001',
-      isDefault: true,
-    },
-    {
-      id: '2',
-      label: 'Work',
-      address: '456 Business Ave, New York, NY 10002',
-      isDefault: false,
-    },
-  ]);
-
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [showAddAddress, setShowAddAddress] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+
+  const handleAddAddress = (newAddress: any) => {
+    if (newAddress) {
+      if (editingId) {
+        // Update existing address
+        setAddresses(
+          addresses.map((addr) =>
+            addr.id === editingId ? { ...newAddress, id: editingId } : addr
+          )
+        );
+        setEditingId(null);
+      } else {
+        // Add new address
+        const addressWithId = {
+          ...newAddress,
+          id: Date.now().toString(),
+        };
+        // If no default exists, make this one default
+        if (addresses.length === 0) {
+          addressWithId.isDefault = true;
+        }
+        setAddresses([...addresses, addressWithId]);
+      }
+    }
+    setShowAddAddress(false);
+  };
+
+  const handleEdit = (address: Address) => {
+    setEditingAddress(address);
+    setEditingId(address.id);
+    setShowAddAddress(true);
+  };
+
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      'Delete Address',
+      'Are you sure you want to delete this address?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const deletedAddress = addresses.find((a) => a.id === id);
+            setAddresses(addresses.filter((a) => a.id !== id));
+
+            // If deleted address was default, make first remaining as default
+            if (deletedAddress?.isDefault && addresses.length > 1) {
+              setAddresses((prev) => {
+                const updated = [...prev];
+                if (updated[0]) {
+                  updated[0].isDefault = true;
+                }
+                return updated;
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSetDefault = (id: string) => {
+    setAddresses(
+      addresses.map((addr) => ({
+        ...addr,
+        isDefault: addr.id === id,
+      }))
+    );
+  };
 
   if (showAddAddress) {
     return (
-      <AddAddressPage onBack={() => setShowAddAddress(false)} />
+      <AddAddressPage
+        onBack={handleAddAddress}
+        initialData={editingAddress}
+      />
     );
   }
-
-  const handleDelete = (id: string) => {
-    Alert.alert('Delete Address', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          setAddresses(addresses.filter((a) => a.id !== id)),
-      },
-    ]);
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -54,48 +118,90 @@ export default function SavedAddressesPage() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {addresses.map((addr) => (
-          <Card key={addr.id} style={styles.addressCard}>
-            <View style={styles.addressHeader}>
-              <View style={styles.addressLabelContainer}>
-                <MapPin size={20} color={colors.primary} />
-                <Text style={styles.addressLabel}>{addr.label}</Text>
-              </View>
-              {addr.isDefault && (
-                <View style={styles.defaultBadge}>
-                  <Check size={14} color="#fff" />
-                  <Text style={styles.defaultText}>Default</Text>
-                </View>
-              )}
+        {addresses.length === 0 ? (
+          <View style={styles.emptyStateContainer}>
+            <View style={styles.emptyIconContainer}>
+              <MapPin size={64} color={colors.primary} />
             </View>
-            <Text style={styles.addressText}>{addr.address}</Text>
-            <View style={styles.addressActions}>
-              <TouchableOpacity style={styles.editAddressBtn}>
-                <Edit2 size={16} color={colors.primary} />
-                <Text style={styles.editAddressText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleDelete(addr.id)}
-                style={styles.deleteAddressBtn}
-              >
-                <Trash2 size={16} color="#FF4444" />
-                <Text style={styles.deleteAddressText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </Card>
-        ))}
+            <Text style={styles.emptyTitle}>No Saved Addresses</Text>
+            <Text style={styles.emptySubtitle}>
+              Save your favorite addresses for quick selection during checkout
+            </Text>
+            <Button
+              title="Add Your First Address"
+              onPress={() => setShowAddAddress(true)}
+              style={styles.emptyButton}
+            />
+          </View>
+        ) : (
+          <>
+            {addresses.map((addr) => (
+              <Card key={addr.id} style={styles.addressCard}>
+                <View style={styles.addressCardContent}>
+                  <View style={styles.addressHeader}>
+                    <View style={styles.addressLabelContainer}>
+                      <View style={styles.iconContainer}>
+                        <MapPin size={20} color={colors.primary} />
+                      </View>
+                      <View>
+                        <Text style={styles.addressLabel}>{addr.label}</Text>
+                        {addr.isDefault && (
+                          <Text style={styles.defaultIndicator}>Default Address</Text>
+                        )}
+                      </View>
+                    </View>
+                    {addr.isDefault && (
+                      <View style={styles.defaultBadge}>
+                        <Check size={12} color="#fff" />
+                      </View>
+                    )}
+                  </View>
 
-        <Button
-          title="Add New Address"
-          onPress={() => setShowAddAddress(true)}
-          style={styles.addButton}
-        />
+                  <Text style={styles.addressText}>{addr.address}</Text>
+
+                  <View style={styles.addressActions}>
+                    {!addr.isDefault && (
+                      <TouchableOpacity
+                        onPress={() => handleSetDefault(addr.id)}
+                        style={styles.setDefaultBtn}
+                      >
+                        <Text style={styles.setDefaultBtnText}>Set as Default</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => handleEdit(addr)}
+                      style={styles.editAddressBtn}
+                    >
+                      <Edit2 size={16} color={colors.primary} />
+                      <Text style={styles.editAddressText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDelete(addr.id)}
+                      style={styles.deleteAddressBtn}
+                    >
+                      <Trash2 size={16} color="#FF4444" />
+                      <Text style={styles.deleteAddressText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Card>
+            ))}
+
+            <Button
+              title="Add Another Address"
+              onPress={() => {
+                setEditingId(null);
+                setEditingAddress(null);
+                setShowAddAddress(true);
+              }}
+              style={styles.addButton}
+            />
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -121,426 +227,105 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    marginTop: 20,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  settingCard: {
-    marginBottom: 16,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  emptyStateContainer: {
     flex: 1,
-    gap: 12,
-  },
-  settingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  settingSubtext: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginHorizontal: 16,
-  },
-  signOutButton: {
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  avatarSection: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  largeAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingVertical: 60,
+    paddingHorizontal: 32,
   },
-  avatarInitials: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 8,
-  },
-  uploadButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  submitButton: {
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  driverHeaderSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  driverAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  driverAvatarText: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  driverName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  ratingText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  reviewsText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-  },
-  phoneButton: {
-    backgroundColor: colors.primary,
-  },
-  messageButton: {
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 24,
   },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 16,
-  },
-  statValue: {
+  emptyTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    color: colors.text,
+    marginBottom: 12,
     textAlign: 'center',
   },
-  detailsCard: {
-    marginBottom: 24,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  messagesList: {
-    padding: 16,
-  },
-  messageItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  messageAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  messageAvatarText: {
-    color: '#fff',
-    fontWeight: '700',
+  emptySubtitle: {
     fontSize: 16,
-  },
-  messageContent: {
-    flex: 1,
-  },
-  messageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  messageName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  messageTime: {
-    fontSize: 12,
     color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
   },
-  messagePreview: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  unreadMessage: {
-    color: colors.text,
-    fontWeight: '600',
-  },
-  unreadBadge: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginLeft: 8,
-  },
-  unreadBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  chatMessagesList: {
-    flexGrow: 1,
-    justifyContent: 'flex-end',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  messageBubble: {
-    maxWidth: '80%',
-    marginVertical: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-  },
-  userMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: colors.primary,
-  },
-  driverMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#f0f0f0',
-  },
-  bubbleText: {
-    fontSize: 14,
-  },
-  userBubbleText: {
-    color: '#fff',
-  },
-  driverBubbleText: {
-    color: colors.text,
-  },
-  bubbleTime: {
-    fontSize: 11,
-    marginTop: 4,
-  },
-  userBubbleTime: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  driverBubbleTime: {
-    color: colors.textSecondary,
-  },
-  messageInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    gap: 8,
-  },
-  messageInput: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.text,
-    maxHeight: 100,
-  },
-  sendButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  paymentCard: {
-    marginBottom: 12,
-    padding: 16,
-  },
-  paymentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  paymentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  cardIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  cardNumber: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  defaultBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
-  },
-  defaultText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  paymentFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  expiryLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  deleteButton: {
-    padding: 8,
+  emptyButton: {
+    alignSelf: 'center',
+    width: '100%',
   },
   addressCard: {
     marginBottom: 12,
+    padding: 0,
+    overflow: 'hidden',
+  },
+  addressCardContent: {
     padding: 16,
   },
   addressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   addressLabelContainer: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+    flexShrink: 0,
   },
   addressLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
+  defaultIndicator: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '500',
+    marginTop: 4,
+  },
   addressText: {
     fontSize: 13,
     color: colors.textSecondary,
-    marginBottom: 12,
-    lineHeight: 18,
+    marginBottom: 14,
+    lineHeight: 20,
   },
   addressActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
+  },
+  setDefaultBtn: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 122, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  setDefaultBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
   },
   editAddressBtn: {
     flex: 1,
@@ -553,7 +338,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   editAddressText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -568,36 +353,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   deleteAddressText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#FF4444',
   },
+  defaultBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
   addButton: {
+    marginTop: 8,
     marginBottom: 30,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  halfInput: {
-    flex: 1,
-  },
-  defaultAddressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    marginVertical: 16,
-  },
-  defaultAddressLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  MessageSquare: {
-    // for the chat icon
   },
 });
