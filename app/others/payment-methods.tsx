@@ -16,6 +16,7 @@ import {
   CreditCard,
   Trash2,
   Check,
+  Plus,
 } from 'lucide-react-native';
 import AddPaymentMethodPage from './add-payment-method';
 
@@ -47,10 +48,7 @@ export default function PaymentMethodsPage() {
   const [showAddPayment, setShowAddPayment] = useState(false);
 
   const handleAddPaymentMethod = (newCard: any) => {
-    // Only add if newCard is not null/undefined
-    if (newCard) {
-      setPaymentMethods([...paymentMethods, newCard]);
-    }
+    setPaymentMethods([...paymentMethods, newCard]);
     setShowAddPayment(false);
   };
 
