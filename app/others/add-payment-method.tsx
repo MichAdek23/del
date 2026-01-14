@@ -11,48 +11,55 @@ import {
 import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { ArrowLeft } from 'lucide-react-native';
-import { CreditCardInput, LiteCreditCardInput } from 'react-native-credit-card-input';
+import { CreditCardInput } from 'react-native-credit-card-input';
 
 // ==================== ADD PAYMENT METHOD PAGE ====================
 export default function AddPaymentMethodPage({ onBack }: any) {
-  const [formData, setFormData] = useState({
-    cardName: '',
-    cardholderName: '',
-  });
-
-  const [cardData, setCardData] = useState({
-    number: '',
-    exp: '',
-    cvc: '',
-    type: '',
-  });
+  const [cardName, setCardName] = useState('');
+  const [cardForm, setCardForm] = useState(null);
 
   const creditCardRef = useRef();
 
   const handleCardInputChange = (form: any) => {
-    setCardData({
-      number: form.values.number || '',
-      exp: form.values.expiry || '',
-      cvc: form.values.cvc || '',
-      type: form.values.type || '',
-    });
+    setCardForm(form);
   };
 
   const handleAdd = () => {
-    // Validate using the credit card input validation
-    if (creditCardRef.current?.isValid() || 
-        (cardData.number && cardData.exp && cardData.cvc && formData.cardholderName)) {
-      Alert.alert('Success', 'Payment method added successfully');
-      onBack();
-    } else {
-      Alert.alert('Error', 'Please fill all fields with valid information');
+    if (!cardForm?.valid) {
+      Alert.alert('Error', 'Please enter valid card information');
+      return;
     }
+
+    if (!cardName.trim()) {
+      Alert.alert('Error', 'Please name this payment method');
+      return;
+    }
+
+    const cardValues = cardForm.values;
+
+    Alert.alert('Success', `Payment method "${cardName}" added successfully`, [
+      {
+        text: 'OK',
+        onPress: () => {
+          // Pass the card data back to parent if needed
+          onBack({
+            id: Date.now().toString(),
+            type: 'card',
+            cardName,
+            cardNumber: `**** **** **** ${cardValues.number.slice(-4)}`,
+            expiryDate: cardValues.expiry,
+            cardholderName: cardValues.name,
+            isDefault: false,
+          });
+        },
+      },
+    ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
+        <TouchableOpacity onPress={() => onBack()}>
           <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Payment Method</Text>
@@ -60,8 +67,8 @@ export default function AddPaymentMethodPage({ onBack }: any) {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionLabel}>Card Information</Text>
-        
+        <Text style={styles.sectionLabel}>Card Details</Text>
+
         <View style={styles.creditCardContainer}>
           <CreditCardInput
             ref={creditCardRef}
@@ -69,7 +76,7 @@ export default function AddPaymentMethodPage({ onBack }: any) {
             labels={{
               number: 'Card Number',
               expiry: 'Expiry Date',
-              cvc: 'CVV',
+              cvc: 'CVC',
               name: 'Cardholder Name',
             }}
             placeholders={{
@@ -79,23 +86,31 @@ export default function AddPaymentMethodPage({ onBack }: any) {
               name: 'John Doe',
             }}
             inputStyle={styles.creditCardInput}
+            labelStyle={styles.labelStyle}
             validColor={colors.primary}
             invalidColor="#FF4444"
             placeholderColor={colors.textSecondary}
             allowScroll={false}
+            cardScale={1}
+            cardFontFamily="System"
           />
         </View>
 
         <Text style={styles.sectionLabel}>Payment Method Name</Text>
-        
+
         <Input
-          label="Name this card (e.g., My Visa)"
-          value={formData.cardName}
-          onChangeText={(text) =>
-            setFormData({ ...formData, cardName: text })
-          }
-          placeholder="My Visa Card"
+          label="Nickname (e.g., My Visa, Work Card)"
+          value={cardName}
+          onChangeText={setCardName}
+          placeholder="e.g., Personal Visa"
+          editable={true}
         />
+
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>
+            💡 Give this card a memorable name to easily identify it later
+          </Text>
+        </View>
 
         <Button
           title="Add Payment Method"
@@ -135,19 +150,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
-    marginBottom: 12,
+    marginBottom: 16,
     marginTop: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   creditCardContainer: {
-    marginBottom: 24,
-    paddingHorizontal: 8,
+    marginBottom: 28,
+    paddingHorizontal: 4,
   },
   creditCardInput: {
     fontSize: 16,
     color: colors.text,
+    fontWeight: '500',
+  },
+  labelStyle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  infoBox: {
+    backgroundColor: 'rgba(0, 122, 255, 0.08)',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 20,
+  },
+  infoText: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
   },
   submitButton: {
-    marginTop: 20,
+    marginTop: 8,
     marginBottom: 30,
   },
 });
