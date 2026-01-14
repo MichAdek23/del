@@ -19,9 +19,20 @@ import {
 } from 'lucide-react-native';
 import AddPaymentMethodPage from './add-payment-method';
 
+interface PaymentMethod {
+  id: string;
+  type: 'card';
+  cardName: string;
+  cardNumber: string;
+  expiryDate: string;
+  cardType: string;
+  cardholderName: string;
+  isDefault: boolean;
+}
+
 // ==================== PAYMENT METHODS PAGE ====================
 export default function PaymentMethodsPage() {
-  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   const [showAddPayment, setShowAddPayment] = useState(false);
 
