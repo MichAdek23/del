@@ -16,9 +16,15 @@ import { CreditCardInput } from 'react-native-credit-card-input';
 // ==================== ADD PAYMENT METHOD PAGE ====================
 export default function AddPaymentMethodPage({ onBack }: any) {
   const [cardName, setCardName] = useState('');
-  const [cardForm, setCardForm] = useState(null);
-
-  const creditCardRef = useRef();
+  const [cardForm, setCardForm] = useState({
+    valid: false,
+    values: {
+      number: '',
+      expiry: '',
+      cvc: '',
+      type: '',
+    },
+  });
 
   const handleCardInputChange = (form: any) => {
     setCardForm(form);
@@ -77,19 +83,16 @@ export default function AddPaymentMethodPage({ onBack }: any) {
 
         <View style={styles.creditCardContainer}>
           <CreditCardInput
-            ref={creditCardRef}
             onChange={handleCardInputChange}
             labels={{
               number: 'Card Number',
               expiry: 'Expiry Date',
               cvc: 'CVC',
-              name: 'Cardholder Name',
             }}
             placeholders={{
               number: '1234 5678 9012 3456',
               expiry: 'MM/YY',
               cvc: '123',
-              name: 'John Doe',
             }}
             inputStyle={styles.creditCardInput}
             labelStyle={styles.labelStyle}
@@ -97,12 +100,20 @@ export default function AddPaymentMethodPage({ onBack }: any) {
             invalidColor="#FF4444"
             placeholderColor={colors.textSecondary}
             allowScroll={false}
-            cardScale={1}
-            cardFontFamily="System"
           />
         </View>
 
         <Text style={styles.sectionLabel}>Payment Method Name</Text>
+
+        <Input
+          label="Cardholder Name"
+          value={cardName}
+          onChangeText={setCardName}
+          placeholder="John Doe"
+          editable={true}
+        />
+
+        <Text style={styles.sectionLabel}>Card Nickname</Text>
 
         <Input
           label="Nickname (e.g., My Visa, Work Card)"
