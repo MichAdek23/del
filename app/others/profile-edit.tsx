@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
-import { StyleSheet,  View,  Text,  ScrollView,  TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  SafeAreaView,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Button, Input } from '@/components';
 import { colors } from '@/constants';
 import { router } from 'expo-router';
-import { Edit2, ArrowLeft } from 'lucide-react-native';
+import { Edit2, ArrowLeft, Camera, X } from 'lucide-react-native';
 
 // ==================== PROFILE EDIT PAGE ====================
 export default function ProfileEditPage() {
@@ -12,12 +23,102 @@ export default function ProfileEditPage() {
     lastName: 'Doe',
     email: 'john.doe@email.com',
     phone: '+1 (555) 123-4567',
-    photo: null,
+    photo: null as string | null,
   });
 
-  const handleSave = () => {
-    Alert.alert('Success', 'Profile updated successfully');
-    router.back();
+  const [loading, setLoading] = useState(false);
+
+  const getInitials = () => {
+    return (formData.firstName[0] + formData.lastName[0]).toUpperCase();
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera roll permissions to select a photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setFormData({ ...formData, photo: result.assets[0].uri });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera permissions to take a photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setFormData({ ...formData, photo: result.assets[0].uri });
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    Alert.alert('Remove Photo', 'Are you sure you want to remove your profile photo?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => setFormData({ ...formData, photo: null }),
+      },
+    ]);
+  };
+
+  const handlePhotoOptions = () => {
+    Alert.alert('Profile Photo', 'Choose an option', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Take Photo', onPress: handleTakePhoto },
+      { text: 'Choose from Gallery', onPress: handlePickImage },
+      ...(formData.photo ? [{ text: 'Remove Photo', style: 'destructive' as const, onPress: handleRemovePhoto }] : []),
+    ]);
+  };
+
+  const handleSave = async () => {
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      Alert.alert('Error', 'Please fill in your name');
+      return;
+    }
+
+    if (!formData.email.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      Alert.alert('Success', 'Profile updated successfully');
+      router.back();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -33,51 +134,73 @@ export default function ProfileEditPage() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Avatar Section */}
         <View style={styles.avatarSection}>
-          <View style={styles.largeAvatar}>
-            <Text style={styles.avatarInitials}>JD</Text>
+          <View style={styles.avatarContainer}>
+            {formData.photo ? (
+              <Image source={{ uri: formData.photo }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.largeAvatar}>
+                <Text style={styles.avatarInitials}>{getInitials()}</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.editAvatarButton}
+              onPress={handlePhotoOptions}
+            >
+              <Camera size={16} color="#fff" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.uploadButton}>
-            <Edit2 size={16} color="#fff" />
-            <Text style={styles.uploadButtonText}>Change Photo</Text>
-          </TouchableOpacity>
+          <Text style={styles.photoHint}>Tap the camera icon to update your photo</Text>
         </View>
 
         {/* Form Fields */}
-        <Input
-          label="First Name"
-          value={formData.firstName}
-          onChangeText={(text) =>
-            setFormData({ ...formData, firstName: text })
-          }
-          placeholder="Enter first name"
-        />
+        <View style={styles.formSection}>
+          <Text style={styles.sectionLabel}>Personal Information</Text>
 
-        <Input
-          label="Last Name"
-          value={formData.lastName}
-          onChangeText={(text) => setFormData({ ...formData, lastName: text })}
-          placeholder="Enter last name"
-        />
+          <View style={styles.row}>
+            <View style={styles.halfInput}>
+              <Input
+                label="First Name"
+                value={formData.firstName}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, firstName: text })
+                }
+                placeholder="John"
+              />
+            </View>
+            <View style={styles.halfInput}>
+              <Input
+                label="Last Name"
+                value={formData.lastName}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, lastName: text })
+                }
+                placeholder="Doe"
+              />
+            </View>
+          </View>
 
-        <Input
-          label="Email"
-          value={formData.email}
-          onChangeText={(text) => setFormData({ ...formData, email: text })}
-          placeholder="Enter email"
-          keyboardType="email-address"
-        />
+          <Input
+            label="Email Address"
+            value={formData.email}
+            onChangeText={(text) => setFormData({ ...formData, email: text })}
+            placeholder="john@example.com"
+            keyboardType="email-address"
+          />
 
-        <Input
-          label="Phone Number"
-          value={formData.phone}
-          onChangeText={(text) => setFormData({ ...formData, phone: text })}
-          placeholder="Enter phone number"
-        />
+          <Input
+            label="Phone Number"
+            value={formData.phone}
+            onChangeText={(text) => setFormData({ ...formData, phone: text })}
+            placeholder="+1 (555) 000-0000"
+            keyboardType="phone-pad"
+          />
+        </View>
 
         <Button
-          title="Save Changes"
+          title={loading ? 'Saving...' : 'Save Changes'}
           onPress={handleSave}
           style={styles.submitButton}
+          disabled={loading}
         />
       </ScrollView>
     </SafeAreaView>
@@ -108,483 +231,74 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    marginTop: 20,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  settingCard: {
-    marginBottom: 16,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  settingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  settingSubtext: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginHorizontal: 16,
-  },
-  signOutButton: {
-    marginTop: 20,
-    marginBottom: 30,
-  },
   avatarSection: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
+    marginTop: 16,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
   },
   largeAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+  },
+  avatarImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: '#fff',
   },
   avatarInitials: {
-    fontSize: 40,
+    fontSize: 48,
     fontWeight: '700',
     color: '#fff',
   },
-  uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+  editAvatarButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    gap: 8,
-  },
-  uploadButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  submitButton: {
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  driverHeaderSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  driverAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  photoHint: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  formSection: {
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
     marginBottom: 16,
-  },
-  driverAvatarText: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  driverName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  ratingText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  reviewsText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-  },
-  phoneButton: {
-    backgroundColor: colors.primary,
-  },
-  messageButton: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 16,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  detailsCard: {
-    marginBottom: 24,
-    padding: 0,
-    overflow: 'hidden',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  messagesList: {
-    padding: 16,
-  },
-  messageItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  messageAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  messageAvatarText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  messageContent: {
-    flex: 1,
-  },
-  messageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  messageName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  messageTime: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  messagePreview: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  unreadMessage: {
-    color: colors.text,
-    fontWeight: '600',
-  },
-  unreadBadge: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginLeft: 8,
-  },
-  unreadBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  chatMessagesList: {
-    flexGrow: 1,
-    justifyContent: 'flex-end',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  messageBubble: {
-    maxWidth: '80%',
-    marginVertical: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-  },
-  userMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: colors.primary,
-  },
-  driverMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#f0f0f0',
-  },
-  bubbleText: {
-    fontSize: 14,
-  },
-  userBubbleText: {
-    color: '#fff',
-  },
-  driverBubbleText: {
-    color: colors.text,
-  },
-  bubbleTime: {
-    fontSize: 11,
-    marginTop: 4,
-  },
-  userBubbleTime: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  driverBubbleTime: {
-    color: colors.textSecondary,
-  },
-  messageInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    gap: 8,
-  },
-  messageInput: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.text,
-    maxHeight: 100,
-  },
-  sendButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  paymentCard: {
-    marginBottom: 12,
-    padding: 16,
-  },
-  paymentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  paymentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  cardIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  cardNumber: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  defaultBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
-  },
-  defaultText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  paymentFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  expiryLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  addressCard: {
-    marginBottom: 12,
-    padding: 16,
-  },
-  addressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  addressLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  addressLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  addressText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  addressActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  editAddressBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    gap: 6,
-  },
-  editAddressText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  deleteAddressBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 68, 68, 0.1)',
-    gap: 6,
-  },
-  deleteAddressText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FF4444',
-  },
-  addButton: {
-    marginBottom: 30,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 12,
   },
   halfInput: {
     flex: 1,
   },
-  defaultAddressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    marginVertical: 16,
-  },
-  defaultAddressLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  MessageSquare: {
-    // for the chat icon
+  submitButton: {
+    marginTop: 12,
+    marginBottom: 30,
   },
 });
