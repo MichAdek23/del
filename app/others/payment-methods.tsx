@@ -21,28 +21,7 @@ import AddPaymentMethodPage from './add-payment-method';
 
 // ==================== PAYMENT METHODS PAGE ====================
 export default function PaymentMethodsPage() {
-  const [paymentMethods, setPaymentMethods] = useState([
-    {
-      id: '1',
-      type: 'card',
-      cardName: 'Visa',
-      cardNumber: '**** **** **** 1234',
-      expiryDate: '12/25',
-      cardType: 'VISA',
-      cardholderName: 'John Doe',
-      isDefault: true,
-    },
-    {
-      id: '2',
-      type: 'card',
-      cardName: 'Mastercard',
-      cardNumber: '**** **** **** 5678',
-      expiryDate: '08/26',
-      cardType: 'MASTERCARD',
-      cardholderName: 'John Doe',
-      isDefault: false,
-    },
-  ]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
 
   const [showAddPayment, setShowAddPayment] = useState(false);
 
